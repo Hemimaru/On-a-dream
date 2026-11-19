@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="ru" data-theme="night">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>On a dream — копилка</title>
+<meta name="description" content="Копилка: впишите цель, добавляйте и убавляйте суммы — сайт сам посчитает, сколько накоплено и сколько осталось.">
+<meta name="theme-color" content="#080a16">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b7cff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script>
+/* Тема применяется до первой отрисовки, чтобы не мигало */
+(function () {
+  try {
+    var s = JSON.parse(localStorage.getItem('onadream:v1') || 'null');
+    if (s && s.theme === 'jar') {
+      document.documentElement.setAttribute('data-theme', 'jar');
+      var m = document.querySelector('meta[name="theme-color"]');
+      if (m) m.setAttribute('content', '#070812');
+    }
+  } catch (e) {}
+})();
+</script>
+</head>
+<body>
+<div class="sky" aria-hidden="true"><span class="stars s1"></span><span class="stars s2"></span></div>
+
+<div class="app" id="app">
+  <header class="top">
+    <div class="brand">
+      <svg class="only-night" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>
+      <svg class="only-jar" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.4 5.6L20 9.3l-4.2 3.9L17 19l-5-3-5 3 1.2-5.8L4 9.3l5.6-.7z"/></svg>
+      <span class="brand-name">On a dream</span>
+    </div>
+    <button id="menuBtn" class="icon-btn" type="button" aria-label="Открыть меню" aria-expanded="false" aria-controls="menu">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+  </header>
+
+  <main id="main">
+    <h1 class="sr-only">Копилка On a dream</h1>
+
+    <section class="card stage" id="stage" aria-label="Состояние копилки">
+      <div class="visual" id="visual">
+        <div class="v-ring only-night">
+          <div class="ring-glow" aria-hidden="true"></div>
+          <svg id="ringSvg" viewBox="0 0 300 300" role="img" aria-label="Накоплено 0 процентов цели">
+            <defs>
+              <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" class="gs1"/>
+                <stop offset="1" class="gs2"/>
+              </linearGradient>
+            </defs>
+            <circle class="ring-track" cx="150" cy="150" r="110" fill="none" stroke-width="18"/>
+            <circle id="ringArc" class="ring-arc empty" cx="150" cy="150" r="110" fill="none" stroke="url(#ringGrad)" stroke-width="18" stroke-linecap="round" stroke-dasharray="691.15 691.15"/>
+          </svg>
+          <div class="ring-center">
+            <span class="ring-pct"><span data-bind="pct">0</span><span class="pct-sign">%</span></span>
+            <span class="ring-cap">цели достигнуто</span>
+          </div>
+        </div>
+
+        <div class="v-jar only-jar">
+          <svg id="jarSvg" viewBox="0 0 240 320" role="img" aria-label="Банка заполнена на 0 процентов">
+            <defs>
+              <clipPath id="jarClip"><path d="M60 60 h120 v10 q22 6 22 30 v170 q0 30 -30 30 h-104 q-30 0 -30 -30 v-170 q0 -24 22 -30 z"/></clipPath>
+              <linearGradient id="liqA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="ls1"/><stop offset="1" class="ls2"/></linearGradient>
+              <linearGradient id="liqB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="ls3"/><stop offset="1" class="ls2b"/></linearGradient>
+              <linearGradient id="glass" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0.22"/><stop offset="0.5" stop-color="#fff" stop-opacity="0.04"/><stop offset="1" stop-color="#fff" stop-opacity="0.14"/></linearGradient>
+            </defs>
+            <ellipse cx="120" cy="308" rx="90" ry="8" fill="#000" opacity="0.35"/>
+            <path d="M60 60 h120 v10 q22 6 22 30 v170 q0 30 -30 30 h-104 q-30 0 -30 -30 v-170 q0 -24 22 -30 z" fill="rgba(255,255,255,0.05)"/>
+            <g clip-path="url(#jarClip)">
+              <g id="liquid" class="liquid">
+                <g class="wave2"><path d="M-60 -4 q30 -12 60 0 t60 0 t60 0 t60 0 t60 0 t60 0 t60 0 t60 0 V400 H-60 z" fill="url(#liqB)"/></g>
+                <g class="wave"><path d="M0 0 q30 -14 60 0 t60 0 t60 0 t60 0 t60 0 t60 0 t60 0 t60 0 V400 H0 z" fill="url(#liqA)"/></g>
+                <circle class="bubble" cx="90" cy="90" r="4"/>
+                <circle class="bubble b2" cx="140" cy="110" r="3"/>
+                <circle class="bubble b3" cx="115" cy="80" r="5"/>
+              </g>
+            </g>
+            <path d="M60 60 h120 v10 q22 6 22 30 v170 q0 30 -30 30 h-104 q-30 0 -30 -30 v-170 q0 -24 22 -30 z" fill="url(#glass)" stroke="rgba(255,255,255,0.45)" stroke-width="2"/>
+            <rect x="54" y="38" width="132" height="22" rx="8" class="jar-lid" stroke="rgba(255,255,255,0.45)" stroke-width="2"/>
+            <path d="M48 110 v150" stroke="rgba(255,255,255,0.35)" stroke-width="4" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="fx" id="fx" aria-hidden="true"></div>
+      </div>
+
+      <div class="numbers">
+        <div class="big only-jar">
+          <span class="big-num"><span data-bind="saved">0</span> <span class="big-cur" data-bind="cur"></span></span>
+          <span class="big-sub">из <span data-bind="goal">—</span> <span data-bind="cur"></span> · осталось <strong><span data-bind="left">—</span> <span data-bind="cur"></span></strong></span>
+        </div>
+
+        <div class="tiles only-night">
+          <div class="tile t1"><span class="tl">Накоплено</span><span class="tv"><span data-bind="saved">0</span> <span data-bind="cur"></span></span></div>
+          <div class="tile t2"><span class="tl">Осталось</span><span class="tv"><span data-bind="left">—</span> <span data-bind="cur"></span></span></div>
+        </div>
+        <p class="goal-line only-night">Цель: <b><span data-bind="goal">—</span> <span data-bind="cur"></span></b></p>
+
+        <div class="bar only-jar" aria-hidden="true"><div class="bar-fill" id="barFill"></div></div>
+
+        <ul class="milestones" aria-label="Отметки прогресса">
+          <li data-ms="25">25%</li>
+          <li data-ms="50">50%</li>
+          <li data-ms="75">75%</li>
+          <li data-ms="100">100% — мечта</li>
+        </ul>
+
+        <p class="done-note" id="doneNote" hidden>Цель достигнута — мечта сбылась!</p>
+        <p class="goal-hint" id="goalHint" hidden>Цель пока не задана. <button class="link" id="goalSet" type="button">Задать в меню</button></p>
+      </div>
+    </section>
+
+    <section class="card controls" aria-label="Изменить сумму">
+      <label for="amount" class="lbl">Добавить или убавить</label>
+      <div class="amount-wrap" id="amountWrap">
+        <input id="amount" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="done" placeholder="500, +500 или −200">
+        <span class="amount-cur" data-bind="cur"></span>
+      </div>
+      <div class="chips" role="group" aria-label="Быстрые суммы">
+        <button class="chip" type="button" data-amt="100">100</button>
+        <button class="chip" type="button" data-amt="500">500</button>
+        <button class="chip" type="button" data-amt="1000">1 000</button>
+        <button class="chip" type="button" data-amt="5000">5 000</button>
+      </div>
+      <div class="actions">
+        <button id="minusBtn" class="btn ghost" type="button"><span aria-hidden="true">−</span> Убавить</button>
+        <button id="plusBtn" class="btn primary" type="button"><span aria-hidden="true">+</span> Добавить</button>
+      </div>
+      <p id="msg" class="msg" role="status"></p>
+    </section>
+
+    <section class="card history" aria-label="История">
+      <h2>История</h2>
+      <ul id="list" class="list"></ul>
+      <p id="empty" class="empty">Пока пусто — добавьте первую сумму.</p>
+      <p id="more" class="empty" hidden>Показаны последние 50 записей.</p>
+    </section>
+  </main>
+</div>
+
+<div id="backdrop" class="backdrop"></div>
+<aside id="menu" class="menu" role="dialog" aria-modal="true" aria-labelledby="menuTitle" tabindex="-1" inert>
+  <div class="menu-head">
+    <h2 id="menuTitle">Меню</h2>
+    <button id="menuClose" class="icon-btn" type="button" aria-label="Закрыть меню">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+
+  <p class="first-hint" id="firstHint" hidden>Начните с цели: впишите сумму, которую хотите накопить.</p>
+
+  <div class="field">
+    <label for="goalInput">Сколько хочу накопить</label>
+    <input id="goalInput" type="text" inputmode="decimal" autocomplete="off" placeholder="Например, 5000">
+  </div>
+
+  <div class="field">
+    <label for="curInput">Валюта</label>
+    <input id="curInput" type="text" maxlength="8" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Br, $, €, ₽ или своя">
+    <small>Впишите любой знак или название.</small>
+  </div>
+
+  <div class="field">
+    <span class="lbl">Тема</span>
+    <button id="themeBtn" class="theme-btn" type="button">
+      <span class="tb-swatch" aria-hidden="true"></span>
+      <span class="tb-text"><b id="themeName">Ночное небо</b><small id="themeNext"></small></span>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg>
+    </button>
+  </div>
+
+  <div class="field">
+    <button id="resetBtn" class="danger" type="button">Обнулить накопления</button>
+    <small>Цель, валюта и тема останутся.</small>
+  </div>
+</aside>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<canvas id="confetti" aria-hidden="true"></canvas>
+<noscript><p class="noscript">Для работы копилки нужен включённый JavaScript.</p></noscript>
+<script src="app.js"></script>
+</body>
+</html>
