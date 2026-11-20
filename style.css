@@ -122,12 +122,11 @@ main { display: flex; flex-direction: column; gap: 16px; }
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   animation: cardIn 0.7s var(--ease) both;
 }
-main > .card:nth-child(3) { animation-delay: 0.08s; }
-main > .card:nth-child(4) { animation-delay: 0.16s; }
+main > .card:nth-child(3) { animation-delay: 0.1s; }
 @keyframes cardIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
 
 /* ===== Визуал ===== */
-.stage { display: flex; flex-direction: column; gap: 22px; }
+.stage { display: flex; flex-direction: column; gap: 14px; }
 .visual { position: relative; display: flex; justify-content: center; }
 .visual.bump { animation: bump 0.55s var(--ease); }
 @keyframes bump { 0% { transform: scale(1); } 35% { transform: scale(1.045); } 100% { transform: scale(1); } }
@@ -155,7 +154,10 @@ main > .card:nth-child(4) { animation-delay: 0.16s; }
 }
 .ring-pct { font-size: clamp(48px, 15vw, 64px); font-weight: 800; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
 .pct-sign { font-size: 0.55em; margin-left: 2px; color: var(--muted); }
-.ring-cap { margin-top: 6px; font-size: 14px; color: var(--muted); }
+.ring-goal { margin-top: 8px; display: flex; flex-direction: column; align-items: center; gap: 1px; max-width: 70%; }
+.rg-lbl { font-size: 13px; color: var(--muted); }
+.rg-sum { font-size: 20px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.15; text-align: center; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.ring-goal.long .rg-sum { font-size: 15px; }
 
 .v-jar { width: min(58vw, 240px); animation: bob 5s ease-in-out infinite; }
 .v-jar svg { width: 100%; height: auto; display: block; overflow: visible; }
@@ -208,35 +210,27 @@ main > .card:nth-child(4) { animation-delay: 0.16s; }
 @keyframes spark { 0% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.2); } }
 
 /* ===== Числа ===== */
-.numbers { display: flex; flex-direction: column; gap: 14px; }
-.big { display: flex; flex-direction: column; gap: 4px; text-align: center; }
-.big-num { font-size: clamp(40px, 13vw, 56px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.big-cur { color: var(--a1); }
-.big-sub { font-size: 16px; color: var(--muted); }
-.big-sub strong { color: var(--text); }
-.stage.long .big-num { font-size: clamp(28px, 9vw, 40px); }
-.stage.long .tv { font-size: 20px; }
+.numbers { display: flex; flex-direction: column; gap: 10px; }
+.stage.long .tv { font-size: 14px; }
 
-.tiles { display: flex; gap: 12px; }
-.tile { flex: 1 1 0; min-width: 0; padding: 14px 16px; border-radius: 20px; display: flex; flex-direction: column; gap: 4px; }
+.tiles { display: flex; gap: 10px; }
+.tile { flex: 1 1 0; min-width: 0; padding: 8px 12px; border-radius: 16px; display: flex; flex-direction: column; gap: 1px; }
 .t1 { background: var(--tile1); border: 1px solid var(--tile1-line); }
 .t2 { background: var(--tile2); border: 1px solid var(--tile2-line); }
-.tl { font-size: 13px; color: var(--muted); }
-.tv { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.goal-line { text-align: center; font-size: 15px; color: var(--muted); }
-.goal-line b { color: var(--text); }
+.tl { font-size: 12px; color: var(--muted); }
+.tv { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.goal-line { text-align: center; font-size: 16px; color: var(--muted); }
+.goal-line b { color: var(--text); font-size: 18px; }
 
-.bar { height: 12px; border-radius: 999px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
-.bar-fill { width: 0; height: 100%; border-radius: 999px; background: var(--grad); transition: width 1.3s var(--ease); }
-
-.milestones { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
-.milestones li {
-  padding: 8px 14px; border-radius: 999px; font-size: 14px; font-weight: 600;
-  color: var(--muted); background: rgba(255, 255, 255, 0.07);
-  transition: background 0.4s ease, color 0.4s ease, transform 0.4s var(--ease);
-}
-.milestones li.on { color: var(--plus); background: color-mix(in srgb, var(--plus) 16%, transparent); font-weight: 700; transform: scale(1.04); }
-.milestones li.on::after { content: " ✓"; }
+/* подписи внутри банки */
+.jar-label { transition: transform 1.5s var(--ease); }
+.jar-label text { font-family: Manrope, system-ui, sans-serif; text-anchor: middle; transition: fill 0.4s ease; }
+.jl-cap { font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; }
+.jl-num { font-weight: 800; }
+.jar-label.on-glass text { fill: var(--text); }
+.jar-label.on-liquid text { fill: #1a1030; }
+#lblSaved { transform: translateY(252px); }
+#lblLeft { transform: translateY(179px); }
 
 .done-note { text-align: center; font-weight: 800; font-size: 18px; color: var(--plus); animation: pop 0.6s var(--ease); }
 .stage.done .ring-glow { animation-duration: 1.6s; }
@@ -245,7 +239,7 @@ main > .card:nth-child(4) { animation-delay: 0.16s; }
 .link { background: none; border: 0; padding: 8px 4px; color: var(--a2); font: 700 15px Manrope, system-ui, sans-serif; text-decoration: underline; cursor: pointer; min-height: 44px; }
 
 /* ===== Управление ===== */
-.controls { display: flex; flex-direction: column; gap: 14px; }
+.controls { display: flex; flex-direction: column; gap: 10px; }
 .lbl { font-size: 14px; font-weight: 600; color: var(--muted); }
 .amount-wrap { position: relative; }
 input[type="text"] {
@@ -259,20 +253,8 @@ input[type="text"]:focus { outline: none; border-color: var(--a2); box-shadow: 0
 input[type="text"].invalid { border-color: var(--minus); }
 .amount-wrap input { padding-right: 76px; }
 .amount-cur { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); max-width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; color: var(--muted); pointer-events: none; }
-.amount-wrap.pulse input { animation: pulseField 0.45s ease; }
-@keyframes pulseField { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--a2) 60%, transparent); } 100% { box-shadow: 0 0 0 12px transparent; } }
 .shake { animation: shake 0.4s ease; }
 @keyframes shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-8px); } 40% { transform: translateX(7px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(3px); } }
-
-.chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.chip {
-  min-height: 44px; padding: 0 18px; border-radius: 999px; cursor: pointer;
-  color: var(--text); background: rgba(255, 255, 255, 0.06); border: 1px solid var(--line);
-  font-size: 15px; font-weight: 600;
-  transition: transform 0.15s ease, background 0.2s ease;
-}
-.chip:hover { background: rgba(255, 255, 255, 0.12); }
-.chip:active { transform: scale(0.94); }
 
 .actions { display: flex; gap: 12px; }
 .btn {
@@ -379,7 +361,7 @@ input[type="text"].invalid { border-color: var(--minus); }
 @media (min-width: 900px) {
   .app { max-width: 1100px; padding-left: 32px; padding-right: 32px; }
   main { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
-  main > .stage { grid-row: 1 / span 2; padding: 32px; }
+  main > .stage { padding: 32px; }
   .card { padding: 28px; }
   .v-ring { width: 300px; }
   .v-jar { width: 250px; }

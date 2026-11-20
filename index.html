@@ -43,7 +43,7 @@
   <main id="main">
     <h1 class="sr-only">Копилка On a dream</h1>
 
-    <section class="card stage" id="stage" aria-label="Состояние копилки">
+    <section class="card stage" id="stage" aria-label="Копилка">
       <div class="visual" id="visual">
         <div class="v-ring only-night">
           <div class="ring-glow" aria-hidden="true"></div>
@@ -59,12 +59,15 @@
           </svg>
           <div class="ring-center">
             <span class="ring-pct"><span data-bind="pct">0</span><span class="pct-sign">%</span></span>
-            <span class="ring-cap">цели достигнуто</span>
+            <span class="ring-goal" id="ringGoal">
+              <span class="rg-lbl">Цель:</span>
+              <span class="rg-sum"><span data-bind="goal">—</span> <span data-bind="cur"></span></span>
+            </span>
           </div>
         </div>
 
         <div class="v-jar only-jar">
-          <svg id="jarSvg" viewBox="0 0 240 320" role="img" aria-label="Банка заполнена на 0 процентов">
+          <svg id="jarSvg" viewBox="0 0 240 320" role="img" aria-label="Банка: накоплено 0">
             <defs>
               <clipPath id="jarClip"><path d="M60 60 h120 v10 q22 6 22 30 v170 q0 30 -30 30 h-104 q-30 0 -30 -30 v-170 q0 -24 22 -30 z"/></clipPath>
               <linearGradient id="liqA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="ls1"/><stop offset="1" class="ls2"/></linearGradient>
@@ -85,54 +88,43 @@
             <path d="M60 60 h120 v10 q22 6 22 30 v170 q0 30 -30 30 h-104 q-30 0 -30 -30 v-170 q0 -24 22 -30 z" fill="url(#glass)" stroke="rgba(255,255,255,0.45)" stroke-width="2"/>
             <rect x="54" y="38" width="132" height="22" rx="8" class="jar-lid" stroke="rgba(255,255,255,0.45)" stroke-width="2"/>
             <path d="M48 110 v150" stroke="rgba(255,255,255,0.35)" stroke-width="4" stroke-linecap="round"/>
+
+            <g id="lblLeft" class="jar-label on-glass">
+              <text class="jl-cap" x="120" y="9">осталось</text>
+              <text class="jl-num" x="120" y="30" font-size="22"><tspan data-bind="left">—</tspan><tspan dx="0.3em" data-bind="cur"></tspan></text>
+            </g>
+            <g id="lblSaved" class="jar-label on-glass">
+              <text class="jl-cap" x="120" y="9">накоплено</text>
+              <text class="jl-num" x="120" y="30" font-size="22"><tspan data-bind="saved">0</tspan><tspan dx="0.3em" data-bind="cur"></tspan></text>
+            </g>
           </svg>
         </div>
         <div class="fx" id="fx" aria-hidden="true"></div>
       </div>
 
       <div class="numbers">
-        <div class="big only-jar">
-          <span class="big-num"><span data-bind="saved">0</span> <span class="big-cur" data-bind="cur"></span></span>
-          <span class="big-sub">из <span data-bind="goal">—</span> <span data-bind="cur"></span> · осталось <strong><span data-bind="left">—</span> <span data-bind="cur"></span></strong></span>
-        </div>
-
         <div class="tiles only-night">
           <div class="tile t1"><span class="tl">Накоплено</span><span class="tv"><span data-bind="saved">0</span> <span data-bind="cur"></span></span></div>
           <div class="tile t2"><span class="tl">Осталось</span><span class="tv"><span data-bind="left">—</span> <span data-bind="cur"></span></span></div>
         </div>
-        <p class="goal-line only-night">Цель: <b><span data-bind="goal">—</span> <span data-bind="cur"></span></b></p>
-
-        <div class="bar only-jar" aria-hidden="true"><div class="bar-fill" id="barFill"></div></div>
-
-        <ul class="milestones" aria-label="Отметки прогресса">
-          <li data-ms="25">25%</li>
-          <li data-ms="50">50%</li>
-          <li data-ms="75">75%</li>
-          <li data-ms="100">100% — мечта</li>
-        </ul>
+        <p class="goal-line only-jar">Цель: <b><span data-bind="goal">—</span> <span data-bind="cur"></span></b></p>
 
         <p class="done-note" id="doneNote" hidden>Цель достигнута — мечта сбылась!</p>
         <p class="goal-hint" id="goalHint" hidden>Цель пока не задана. <button class="link" id="goalSet" type="button">Задать в меню</button></p>
       </div>
-    </section>
 
-    <section class="card controls" aria-label="Изменить сумму">
-      <label for="amount" class="lbl">Добавить или убавить</label>
-      <div class="amount-wrap" id="amountWrap">
-        <input id="amount" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="done" placeholder="500, +500 или −200">
-        <span class="amount-cur" data-bind="cur"></span>
+      <div class="controls">
+        <label for="amount" class="lbl">Добавить или убавить</label>
+        <div class="amount-wrap">
+          <input id="amount" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="done" placeholder="500, +500 или −200">
+          <span class="amount-cur" data-bind="cur"></span>
+        </div>
+        <div class="actions">
+          <button id="minusBtn" class="btn ghost" type="button">Убавить</button>
+          <button id="plusBtn" class="btn primary" type="button">Добавить</button>
+        </div>
+        <p id="msg" class="msg" role="status"></p>
       </div>
-      <div class="chips" role="group" aria-label="Быстрые суммы">
-        <button class="chip" type="button" data-amt="100">100</button>
-        <button class="chip" type="button" data-amt="500">500</button>
-        <button class="chip" type="button" data-amt="1000">1 000</button>
-        <button class="chip" type="button" data-amt="5000">5 000</button>
-      </div>
-      <div class="actions">
-        <button id="minusBtn" class="btn ghost" type="button"><span aria-hidden="true">−</span> Убавить</button>
-        <button id="plusBtn" class="btn primary" type="button"><span aria-hidden="true">+</span> Добавить</button>
-      </div>
-      <p id="msg" class="msg" role="status"></p>
     </section>
 
     <section class="card history" aria-label="История">
@@ -177,7 +169,6 @@
 
   <div class="field">
     <button id="resetBtn" class="danger" type="button">Обнулить накопления</button>
-    <small>Цель, валюта и тема останутся.</small>
   </div>
 </aside>
 

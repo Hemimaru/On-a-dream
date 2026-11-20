@@ -90,11 +90,12 @@
   const ringSvg = $('#ringSvg');
   const jarSvg = $('#jarSvg');
   const liquid = $('#liquid');
-  const barFill = $('#barFill');
+  const lblSaved = $('#lblSaved');
+  const lblLeft = $('#lblLeft');
+  const ringGoal = $('#ringGoal');
   const doneNote = $('#doneNote');
   const goalHint = $('#goalHint');
   const amountEl = $('#amount');
-  const amountWrap = $('#amountWrap');
   const msgEl = $('#msg');
   const listEl = $('#list');
   const emptyEl = $('#empty');
@@ -119,13 +120,24 @@
   let shown = { saved: 0, left: 0, pct: 0 };
   let rafId = 0;
 
+  /* размер шрифта подписей в банке подгоняется под длину числа */
+  function fitJarLabels(savedText, leftText) {
+    const extra = state.currency ? state.currency.length + 1 : 0;
+    [[lblSaved, savedText], [lblLeft, leftText]].forEach(([g, t]) => {
+      const size = Math.max(11, Math.min(22, 140 / ((t.length + extra) * 0.62)));
+      g.querySelector('.jl-num').setAttribute('font-size', size.toFixed(1));
+    });
+  }
+
   function writeNumbers(v) {
     const hasGoal = state.goal > 0;
     const savedText = fmt(v.saved);
+    const leftText = hasGoal ? fmt(v.left) : '—';
     setBind('saved', savedText);
-    setBind('left', hasGoal ? fmt(v.left) : '—');
+    setBind('left', leftText);
     setBind('pct', String(Math.floor(v.pct + 1e-9)));
     stage.classList.toggle('long', savedText.length > 10);
+    fitJarLabels(savedText, leftText);
   }
 
   let finishTimer = 0;
@@ -175,11 +187,43 @@
     ringArc.style.strokeDashoffset = (RING_C * (1 - frac)).toFixed(2);
     ringArc.classList.toggle('empty', frac <= 0);
     liquid.style.transform = `translateY(${(JAR_EMPTY - (JAR_EMPTY - JAR_FULL) * frac).toFixed(1)}px)`;
-    barFill.style.width = (frac * 100).toFixed(2) + '%';
-    $$('[data-ms]').forEach((li) => li.classList.toggle('on', frac * 100 >= Number(li.dataset.ms) - 1e-9));
-    const pctInt = Math.floor(frac * 100 + 1e-9);
-    ringSvg.setAttribute('aria-label', `Накоплено ${pctInt} процентов цели`);
-    jarSvg.setAttribute('aria-label', `Банка заполнена на ${pctInt} процентов`);
+    layoutJarLabels(frac);
+  }
+
+  /* «Накоплено» — в заполненной части банки, «осталось» — в пустой.
+     Если в какой-то части мало места, подпись переезжает в соседнюю. */
+  function layoutJarLabels(frac) {
+    const TOP = 100, BOTTOM = 292, H = 34, PAD = 4, GAP = 8;
+    const ys = Math.min(BOTTOM, Math.max(TOP, JAR_EMPTY - (JAR_EMPTY - JAR_FULL) * frac));
+    const filled = BOTTOM - ys;
+    const empty = ys - TOP;
+    let leftTop, savedTop, leftOnLiquid, savedOnLiquid;
+
+    if (empty >= H + 2 * PAD) {
+      leftOnLiquid = false;
+      leftTop = TOP + (empty - H) / 2;
+      if (filled >= H + 2 * PAD) {
+        savedOnLiquid = true;
+        savedTop = ys + (filled - H) / 2;
+      } else {
+        savedOnLiquid = false;
+        savedTop = ys - GAP - H;
+        leftTop = TOP + (savedTop - GAP - TOP - H) / 2;
+      }
+    } else {
+      leftOnLiquid = true;
+      savedOnLiquid = true;
+      leftTop = ys + 14;
+      const from = leftTop + H + GAP;
+      savedTop = from + (BOTTOM - from - H) / 2;
+    }
+
+    lblLeft.style.transform = `translateY(${leftTop.toFixed(1)}px)`;
+    lblSaved.style.transform = `translateY(${savedTop.toFixed(1)}px)`;
+    lblLeft.classList.toggle('on-liquid', leftOnLiquid);
+    lblLeft.classList.toggle('on-glass', !leftOnLiquid);
+    lblSaved.classList.toggle('on-liquid', savedOnLiquid);
+    lblSaved.classList.toggle('on-glass', !savedOnLiquid);
   }
 
   function render(opts = {}) {
@@ -190,6 +234,12 @@
 
     setBind('goal', goal > 0 ? fmt(goal) : '—');
     setBind('cur', state.currency);
+    const goalLen = (goal > 0 ? fmt(goal).length : 1) + (state.currency ? state.currency.length + 1 : 0);
+    ringGoal.classList.toggle('long', goalLen > 10);
+    const pctInt = Math.floor(frac * 100 + 1e-9);
+    const curTxt = state.currency ? ' ' + state.currency : '';
+    ringSvg.setAttribute('aria-label', `Накоплено ${pctInt} процентов цели: ${fmt(saved)}${curTxt} из ${goal > 0 ? fmt(goal) : '—'}`);
+    jarSvg.setAttribute('aria-label', `Банка: накоплено ${fmt(saved)}${curTxt}, осталось ${goal > 0 ? fmt(left) : '—'}${goal > 0 ? curTxt : ''}`);
     animateNumbers({ saved, left, pct: frac * 100 }, opts.instant);
 
     if (opts.deferVisual && !reduceMotion) {
@@ -547,6 +597,7 @@
     state.currency = curInput.value.trim().slice(0, 8);
     save();
     setBind('cur', state.currency);
+    writeNumbers(shown);
     renderList();
   });
 
@@ -579,16 +630,6 @@
     const clean = amountEl.value.replace(/[^\d+\-−–.,  ]/g, '');
     if (clean !== amountEl.value) amountEl.value = clean;
   });
-
-  $$('.chip').forEach((chip) =>
-    chip.addEventListener('click', () => {
-      amountEl.value = chip.dataset.amt;
-      amountWrap.classList.remove('pulse');
-      void amountWrap.offsetWidth;
-      amountWrap.classList.add('pulse');
-      amountEl.focus({ preventScroll: true });
-    })
-  );
 
   listEl.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-del]');
