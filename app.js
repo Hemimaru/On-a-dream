@@ -15,6 +15,7 @@
   const SUN_BASE = 112;
   const JAR_EMPTY = 310;
   const JAR_FULL = 76;
+  const MAX_ENTRIES = 5000;
   const MAX_SHOWN = 50;
   const MS_TEXT = {
     25: 'Четверть пути — отличное начало!',
@@ -51,29 +52,66 @@
   }
 
   /* ---------- Состояние ---------- */
-  function load() {
+  function normalize(raw) {
     const d = { goal: 0, currency: 'Br', theme: 'night', entries: [] };
-    try {
-      const rawText = localStorage.getItem(KEY);
-      if (rawText === null) return d;
-      const raw = JSON.parse(rawText);
-      if (!raw || typeof raw !== 'object') return d;
-      const goal = Number(raw.goal);
-      if (Number.isFinite(goal) && goal > 0) d.goal = goal;
-      if (typeof raw.currency === 'string') d.currency = raw.currency.slice(0, 8);
-      if (typeof raw.theme === 'string' && Object.prototype.hasOwnProperty.call(THEMES, raw.theme)) d.theme = raw.theme;
-      if (Array.isArray(raw.entries)) {
-        d.entries = raw.entries
-          .filter((e) => e && Number.isFinite(e.amount) && e.amount !== 0 && Number.isFinite(e.ts))
-          .map((e) => ({ id: String(e.id || uid()), amount: round2(e.amount), ts: e.ts }));
-      }
-    } catch (e) {
-      /* повреждённые данные — начинаем с чистого листа */
+    if (!raw || typeof raw !== 'object') return d;
+    const goal = Number(raw.goal);
+    if (Number.isFinite(goal) && goal > 0) d.goal = goal;
+    if (typeof raw.currency === 'string') d.currency = raw.currency.slice(0, 8);
+    if (typeof raw.theme === 'string' && Object.prototype.hasOwnProperty.call(THEMES, raw.theme)) d.theme = raw.theme;
+    if (Array.isArray(raw.entries)) {
+      d.entries = raw.entries
+        .filter((e) => e && Number.isFinite(e.amount) && e.amount !== 0 && Number.isFinite(e.ts))
+        .slice(0, MAX_ENTRIES)
+        .map((e) => ({ id: String(e.id || uid()), amount: round2(e.amount), ts: e.ts }));
     }
     return d;
   }
 
+  let hadLocal = false;
+  function load() {
+    try {
+      const rawText = localStorage.getItem(KEY);
+      if (rawText === null) return normalize(null);
+      hadLocal = true;
+      return normalize(JSON.parse(rawText));
+    } catch (e) {
+      return normalize(null); /* повреждённые данные — начинаем с чистого листа */
+    }
+  }
+
   let state = load();
+  const hasData = (st) => st.goal > 0 || st.entries.length > 0;
+
+  /* Вторая копия в IndexedDB: iOS иногда очищает localStorage, а IndexedDB переживает это чаще */
+  const idb = {
+    open() {
+      return new Promise((resolve, reject) => {
+        if (!window.indexedDB) return reject(new Error('no idb'));
+        const rq = indexedDB.open('kopilka', 1);
+        rq.onupgradeneeded = () => rq.result.createObjectStore('kv');
+        rq.onsuccess = () => resolve(rq.result);
+        rq.onerror = () => reject(rq.error);
+      });
+    },
+    async get() {
+      const db = await this.open();
+      return new Promise((resolve, reject) => {
+        const rq = db.transaction('kv').objectStore('kv').get('state');
+        rq.onsuccess = () => resolve(rq.result);
+        rq.onerror = () => reject(rq.error);
+      });
+    },
+    async put(value) {
+      const db = await this.open();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('kv', 'readwrite');
+        tx.objectStore('kv').put(value, 'state');
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    },
+  };
 
   function save() {
     try {
@@ -81,7 +119,13 @@
     } catch (e) {
       /* хранилище недоступно (приватный режим и т.п.) */
     }
+    idb.put(JSON.parse(JSON.stringify(state))).catch(() => {});
   }
+
+  /* просим браузер не стирать данные сайта */
+  try {
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  } catch (e) { /* не страшно */ }
 
   const total = () => round2(state.entries.reduce((s, e) => s + e.amount, 0));
 
@@ -503,6 +547,7 @@
 
   function openMenu(auto) {
     syncMenuInputs();
+    updateRestoreHint();
     firstHint.hidden = !(auto || state.goal === 0);
     menu.removeAttribute('inert');
     appEl.setAttribute('inert', '');
@@ -525,6 +570,7 @@
     menuBtn.setAttribute('aria-expanded', 'false');
     menuBtn.focus({ preventScroll: true });
     disarmReset();
+    hideBackupBox();
   }
 
   /* ---------- Тема ---------- */
@@ -645,6 +691,103 @@
     if (btn) removeEntry(btn.dataset.del);
   });
 
+  /* ---------- Копия данных (код для переноса) ---------- */
+  const backupBox = $('#backupBox');
+  const restoreBtn = $('#restoreBtn');
+  const restoreHint = $('#restoreHint');
+  const standalone = (window.navigator.standalone === true) ||
+    (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+
+  function encodeBackup() {
+    const bytes = new TextEncoder().encode(JSON.stringify(state));
+    let bin = '';
+    bytes.forEach((b) => { bin += String.fromCharCode(b); });
+    return 'KOP1:' + btoa(bin);
+  }
+  function decodeBackup(text) {
+    const m = String(text).replace(/\s+/g, '').match(/KOP1:([A-Za-z0-9+/=]+)/);
+    if (!m) return null;
+    try {
+      const bin = atob(m[1]);
+      const bytes = Uint8Array.from(bin, (ch) => ch.charCodeAt(0));
+      const st = normalize(JSON.parse(new TextDecoder().decode(bytes)));
+      return hasData(st) ? st : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  let restoreArmed = false;
+  function disarmRestore() {
+    restoreArmed = false;
+    restoreBtn.textContent = 'Восстановить';
+    restoreBtn.classList.remove('armed');
+  }
+  function hideBackupBox() {
+    backupBox.hidden = true;
+    restoreBtn.hidden = true;
+    backupBox.value = '';
+    disarmRestore();
+  }
+
+  function applyRestored(st) {
+    state = st;
+    save();
+    setIdentity(state.theme);
+    syncMenuInputs();
+    renderList();
+    render({ instant: true });
+  }
+
+  $('#copyBtn').addEventListener('click', async () => {
+    const code = encodeBackup();
+    try {
+      await navigator.clipboard.writeText(code);
+      hideBackupBox();
+      toast('Код скопирован');
+    } catch (e) {
+      backupBox.hidden = false;
+      restoreBtn.hidden = true;
+      backupBox.value = code;
+      backupBox.focus();
+      backupBox.select();
+      toast('Скопируйте код вручную');
+    }
+  });
+
+  $('#pasteBtn').addEventListener('click', async () => {
+    disarmRestore();
+    let text = '';
+    try { text = await navigator.clipboard.readText(); } catch (e) { /* iOS спросит разрешение или откажет */ }
+    backupBox.hidden = false;
+    restoreBtn.hidden = false;
+    backupBox.value = text;
+    if (!text) backupBox.focus();
+  });
+
+  restoreBtn.addEventListener('click', () => {
+    const st = decodeBackup(backupBox.value);
+    if (!st) {
+      toast('Код не распознан');
+      return;
+    }
+    if (hasData(state) && !restoreArmed) {
+      restoreArmed = true;
+      restoreBtn.textContent = 'Заменить данные? Нажмите ещё раз';
+      restoreBtn.classList.add('armed');
+      return;
+    }
+    hideBackupBox();
+    applyRestored(st);
+    closeMenu();
+    toast('Данные восстановлены');
+  });
+
+  /* подсказка в установленном приложении, пока данных нет */
+  function updateRestoreHint() {
+    restoreHint.hidden = !(standalone && !hasData(state));
+  }
+
   /* синхронизация между вкладками */
   window.addEventListener('storage', (e) => {
     if (e.key !== KEY) return;
@@ -661,8 +804,19 @@
   renderList();
   render({ deferVisual: true });
 
-  if (state.goal === 0 && state.entries.length === 0) {
-    setTimeout(() => openMenu(true), 900);
+  if (!hasData(state)) {
+    setTimeout(() => { if (!hasData(state)) openMenu(true); }, 900);
+  }
+
+  /* localStorage пуст (например, iOS его очистил), а копия в IndexedDB осталась — возвращаем данные */
+  if (!hadLocal) {
+    idb.get().then((v) => {
+      if (!v || hasData(state)) return;
+      const st = normalize(v);
+      if (hasData(st)) applyRestored(st);
+    }).catch(() => {});
+  } else if (hasData(state)) {
+    idb.put(JSON.parse(JSON.stringify(state))).catch(() => {});
   }
 
   /* работа без интернета и установка на главный экран (нужен https или localhost) */

@@ -381,6 +381,23 @@ input[type="text"].invalid { border-color: var(--minus); }
 .sw-jar { background: linear-gradient(180deg, #2b2147 0 38%, #ffd27a 40%, #ff8a5b); }
 .sw-sun { background: radial-gradient(circle at 50% 78%, #ffd27a 0 26%, #ff6b6b 28% 46%, transparent 48%), linear-gradient(180deg, #1b1340, #4a2160); }
 
+.field .lbl { font-size: 14px; font-weight: 600; color: var(--muted); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ghost {
+  line-height: 1.2;
+  min-height: 52px; padding: 0 16px; border-radius: 16px; cursor: pointer;
+  font-size: 16px; font-weight: 700; color: var(--text);
+  background: var(--field); border: 1px solid rgba(255, 255, 255, 0.16);
+  transition: transform 0.15s ease, border-color 0.2s ease;
+}
+.ghost:hover { border-color: var(--a2); }
+.ghost:active { transform: scale(0.98); }
+.ghost.armed { border-color: var(--minus); color: var(--minus); }
+.menu textarea {
+  width: 100%; resize: none; padding: 12px 14px; border-radius: 14px; font: 14px/1.35 ui-monospace, monospace;
+  color: var(--text); background: var(--field); border: 1px solid rgba(255, 255, 255, 0.16); word-break: break-all;
+}
+.restore-hint { padding: 12px 14px; border-radius: 14px; font-size: 14px; line-height: 1.4; background: var(--tile1); border: 1px solid var(--tile1-line); }
 .danger {
   min-height: 52px; padding: 0 16px; border-radius: 16px; cursor: pointer;
   font-size: 16px; font-weight: 700; color: var(--minus);

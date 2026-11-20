@@ -266,6 +266,17 @@
     </div>
   </div>
 
+  <div class="field" id="backupField">
+    <span class="lbl" id="backupLbl">Копия данных</span>
+    <p class="restore-hint" id="restoreHint" hidden>Если копилка уже была в браузере: откройте её там, меню → «Копия данных» → «Скопировать», потом вернитесь сюда и нажмите «Вставить».</p>
+    <div class="row2">
+      <button id="copyBtn" class="ghost" type="button">Скопировать</button>
+      <button id="pasteBtn" class="ghost" type="button">Вставить</button>
+    </div>
+    <textarea id="backupBox" rows="4" hidden spellcheck="false" autocomplete="off" autocapitalize="off" aria-labelledby="backupLbl"></textarea>
+    <button id="restoreBtn" class="ghost" type="button" hidden>Восстановить</button>
+  </div>
+
   <div class="field">
     <button id="resetBtn" class="danger" type="button">Обнулить накопления</button>
   </div>
