@@ -571,6 +571,7 @@
     menuBtn.focus({ preventScroll: true });
     disarmReset();
     hideBackupBox();
+    installHelp.hidden = true;
   }
 
   /* ---------- Тема ---------- */
@@ -787,6 +788,42 @@
   function updateRestoreHint() {
     restoreHint.hidden = !(standalone && !hasData(state));
   }
+
+  /* ---------- Добавить на главный экран ---------- */
+  const installField = $('#installField');
+  const installBtn = $('#installBtn');
+  const installHelp = $('#installHelp');
+  let installEvt = null;
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  if (standalone) installField.hidden = true;
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    installEvt = e;
+  });
+  window.addEventListener('appinstalled', () => {
+    installEvt = null;
+    installField.hidden = true;
+    toast('Копилка добавлена на главный экран');
+  });
+
+  installBtn.addEventListener('click', async () => {
+    if (installEvt) {
+      const evt = installEvt;
+      installEvt = null;
+      try {
+        evt.prompt();
+        await evt.userChoice;
+      } catch (e) { /* закрыли окно */ }
+      return;
+    }
+    installHelp.textContent = isIOS
+      ? 'В Safari: нажмите «Поделиться» (квадрат со стрелкой внизу экрана) → «На экран “Домой”». Иконка будет в цвете выбранной сейчас темы.'
+      : 'В меню браузера (три точки) выберите «Установить приложение» или «Добавить на главный экран».';
+    installHelp.hidden = !installHelp.hidden;
+  });
 
   /* синхронизация между вкладками */
   window.addEventListener('storage', (e) => {
