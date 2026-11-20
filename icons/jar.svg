@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<defs>
+<radialGradient id="bg" cx="30%" cy="20%" r="100%"><stop offset="0" stop-color="#5a2a86"/><stop offset="0.55" stop-color="#1c1236"/><stop offset="1" stop-color="#070812"/></radialGradient>
+<linearGradient id="lg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd27a"/><stop offset="1" stop-color="#ff8a5b"/></linearGradient>
+<linearGradient id="gs" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0.28"/><stop offset="0.5" stop-color="#fff" stop-opacity="0.05"/><stop offset="1" stop-color="#fff" stop-opacity="0.18"/></linearGradient>
+<radialGradient id="gl"><stop offset="0" stop-color="#ffb86b" stop-opacity="0.4"/><stop offset="1" stop-color="#ffb86b" stop-opacity="0"/></radialGradient>
+<clipPath id="jc"><path d="M60 60 h120 v10 q22 6 22 30 v170 q0 30 -30 30 h-104 q-30 0 -30 -30 v-170 q0 -24 22 -30 z"/></clipPath>
+</defs>
+<rect width="512" height="512" fill="url(#bg)"/>
+<circle cx="256" cy="270" r="190" fill="url(#gl)"/>
+<g transform="translate(118 67) scale(1.15)">
+<path d="M60 60 h120 v10 q22 6 22 30 v170 q0 30 -30 30 h-104 q-30 0 -30 -30 v-170 q0 -24 22 -30 z" fill="rgba(255,255,255,0.08)"/>
+<g clip-path="url(#jc)"><path d="M0 138 q30 -14 60 0 t60 0 t60 0 t60 0 V320 H0 z" fill="url(#lg)"/></g>
+<path d="M60 60 h120 v10 q22 6 22 30 v170 q0 30 -30 30 h-104 q-30 0 -30 -30 v-170 q0 -24 22 -30 z" fill="url(#gs)" stroke="rgba(255,255,255,0.65)" stroke-width="4"/>
+<rect x="54" y="38" width="132" height="22" rx="8" fill="#2b2147" stroke="rgba(255,255,255,0.65)" stroke-width="4"/>
+</g>
+<g fill="#ffe9b8"><circle cx="372" cy="150" r="5"/><circle cx="140" cy="168" r="4"/><circle cx="388" cy="330" r="4"/><circle cx="130" cy="340" r="3"/></g>
+</svg>

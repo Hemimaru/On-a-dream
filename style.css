@@ -45,8 +45,37 @@ html[data-theme="jar"] {
   --tile2-line: rgba(255, 138, 91, 0.32);
 }
 
-html[data-theme="night"] .only-jar,
-html[data-theme="jar"] .only-night {
+html[data-theme="sun"] {
+  --bg: #120d2b;
+  --glow1: #4a2160;
+  --glow2: #3a1a4a;
+  --text: #fff4ea;
+  --muted: #d9b8c4;
+  --a1: #ffb347;
+  --a2: #ff6b6b;
+  --grad: linear-gradient(135deg, #ffd27a, #ff6b6b);
+  --on-grad: #2a1030;
+  --plus: #ffd27a;
+  --minus: #ffa3b8;
+  --field: rgba(18, 13, 43, 0.72);
+  --sheet: #1a1038;
+  --star: #ffe9d6;
+  --tile1: rgba(255, 179, 71, 0.14);
+  --tile1-line: rgba(255, 179, 71, 0.4);
+  --tile2: rgba(255, 107, 107, 0.12);
+  --tile2-line: rgba(255, 107, 107, 0.38);
+}
+html[data-theme="sun"] body {
+  background:
+    radial-gradient(520px 340px at 50% 22%, rgba(255, 120, 80, 0.28), transparent 70%),
+    linear-gradient(180deg, #120d2b 0%, #2a1650 38%, #4a2160 60%, #120d2b 100%);
+  background-attachment: fixed;
+}
+
+/* элементы, которые видны только в своих темах: data-themes="night sun" */
+html[data-theme="night"] [data-themes]:not([data-themes~="night"]),
+html[data-theme="jar"] [data-themes]:not([data-themes~="jar"]),
+html[data-theme="sun"] [data-themes]:not([data-themes~="sun"]) {
   display: none !important;
 }
 
@@ -175,6 +204,20 @@ main > .card:nth-child(3) { animation-delay: 0.1s; }
 .bubble.b2 { animation-delay: 1.6s; }
 .bubble.b3 { animation-delay: 3s; }
 @keyframes rise { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: 0.9; } 100% { transform: translateY(-60px); opacity: 0; } }
+
+/* ===== Тема «Рассвет» ===== */
+.v-sun { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.v-sun svg { width: 100%; max-width: 360px; height: auto; display: block; overflow: visible; }
+.sun-move { transform: translateY(88px); transition: transform 1.6s var(--ease); }
+.sun-halo { animation: glow 5s ease-in-out infinite; }
+.sun-rays { transform-origin: 165px 112px; animation: spin 60s linear infinite; }
+@keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+.refl { transform-box: fill-box; transform-origin: center; animation: shimmer 4s ease-in-out infinite; }
+.refl.r2 { animation-delay: 1.3s; }
+.refl.r3 { animation-delay: 2.4s; }
+@keyframes shimmer { 0%, 100% { opacity: 0.25; transform: scaleX(0.8); } 50% { opacity: 0.8; transform: scaleX(1); } }
+.sun-info { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: -4px; }
+.stage.done .sun-halo { animation-duration: 1.6s; }
 
 /* ===== Эффекты при операциях ===== */
 .fx { position: absolute; inset: 0; pointer-events: none; }
@@ -320,20 +363,23 @@ input[type="text"].invalid { border-color: var(--minus); }
 .field small { font-size: 13px; color: var(--muted); }
 .menu input[type="text"] { font-size: 20px; }
 
-.theme-btn {
-  display: flex; align-items: center; gap: 14px; width: 100%; min-height: 64px;
-  padding: 10px 16px; border-radius: 16px; cursor: pointer; text-align: left;
+.themes { display: flex; flex-direction: column; gap: 8px; }
+.theme-opt {
+  display: flex; align-items: center; gap: 14px; width: 100%; min-height: 60px;
+  padding: 8px 16px; border-radius: 16px; cursor: pointer; text-align: left;
   color: var(--text); background: var(--field); border: 1px solid rgba(255, 255, 255, 0.16);
-  transition: transform 0.15s ease, border-color 0.2s ease;
+  font-size: 17px; font-weight: 700;
+  transition: transform 0.15s ease, border-color 0.2s ease, background 0.2s ease;
 }
-.theme-btn:hover { border-color: var(--a2); }
-.theme-btn:active { transform: scale(0.98); }
-.theme-btn svg { margin-left: auto; flex: none; color: var(--muted); transition: transform 0.5s var(--ease); }
-.theme-btn.spin svg { transform: rotate(180deg); }
-.tb-swatch { flex: none; width: 36px; height: 36px; border-radius: 50%; background: var(--grad); box-shadow: 0 0 18px color-mix(in srgb, var(--a1) 55%, transparent); }
-.tb-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.tb-text b { font-size: 17px; font-weight: 800; }
-.tb-text small { font-size: 13px; color: var(--muted); }
+.theme-opt:hover { border-color: var(--a2); }
+.theme-opt:active { transform: scale(0.98); }
+.theme-opt .tick { margin-left: auto; flex: none; color: var(--a2); opacity: 0; transform: scale(0.6); transition: opacity 0.25s ease, transform 0.35s var(--ease); }
+.theme-opt[aria-pressed="true"] { border-color: var(--a2); background: color-mix(in srgb, var(--a2) 12%, var(--field)); }
+.theme-opt[aria-pressed="true"] .tick { opacity: 1; transform: none; }
+.tb-swatch { flex: none; width: 36px; height: 36px; border-radius: 50%; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18); }
+.sw-night { background: linear-gradient(135deg, #8b7cff, #5ee7df); }
+.sw-jar { background: linear-gradient(180deg, #2b2147 0 38%, #ffd27a 40%, #ff8a5b); }
+.sw-sun { background: radial-gradient(circle at 50% 78%, #ffd27a 0 26%, #ff6b6b 28% 46%, transparent 48%), linear-gradient(180deg, #1b1340, #4a2160); }
 
 .danger {
   min-height: 52px; padding: 0 16px; border-radius: 16px; cursor: pointer;
@@ -365,6 +411,7 @@ input[type="text"].invalid { border-color: var(--minus); }
   .card { padding: 28px; }
   .v-ring { width: 300px; }
   .v-jar { width: 250px; }
+  .v-sun svg { max-width: 420px; }
 }
 
 /* ===== Уменьшенное движение ===== */

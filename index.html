@@ -3,25 +3,80 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>On a dream — копилка</title>
+<title>Копилка</title>
 <meta name="description" content="Копилка: впишите цель, добавляйте и убавляйте суммы — сайт сам посчитает, сколько накоплено и сколько осталось.">
 <meta name="theme-color" content="#080a16">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b7cff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z'/%3E%3C/svg%3E">
+<meta name="application-name" content="Копилка">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Копилка">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/night-192.png">
+<link rel="apple-touch-icon" href="icons/night-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <script>
-/* Тема применяется до первой отрисовки, чтобы не мигало */
+/* Тема, цвет адресной строки, иконка и манифест приложения подстраиваются под выбранную тему.
+   Выполняется до первой отрисовки, чтобы не мигало. */
 (function () {
-  try {
-    var s = JSON.parse(localStorage.getItem('onadream:v1') || 'null');
-    if (s && s.theme === 'jar') {
-      document.documentElement.setAttribute('data-theme', 'jar');
-      var m = document.querySelector('meta[name="theme-color"]');
-      if (m) m.setAttribute('content', '#070812');
-    }
-  } catch (e) {}
+  var T = {
+    night: { color: '#080a16', icon: 'icons/night' },
+    jar: { color: '#070812', icon: 'icons/jar' },
+    sun: { color: '#120d2b', icon: 'icons/sun' }
+  };
+  var cur = null;
+  var blobUrl = null;
+  var abs = function (p) { return new URL(p, document.baseURI).href; };
+
+  function setManifest(t) {
+    var link = document.querySelector('link[rel="manifest"]');
+    if (!link || !window.URL || !URL.createObjectURL || !window.Blob) return;
+    var scope = new URL('./', document.baseURI).href;
+    var m = {
+      id: scope,
+      name: 'Копилка',
+      short_name: 'Копилка',
+      description: 'Копилка: цель, накопления и сколько осталось',
+      lang: 'ru',
+      start_url: scope,
+      scope: scope,
+      display: 'standalone',
+      orientation: 'portrait',
+      background_color: t.color,
+      theme_color: t.color,
+      icons: [
+        { src: abs(t.icon + '-192.png'), sizes: '192x192', type: 'image/png', purpose: 'any' },
+        { src: abs(t.icon + '-512.png'), sizes: '512x512', type: 'image/png', purpose: 'any' },
+        { src: abs(t.icon + '-maskable-512.png'), sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+      ]
+    };
+    var url = URL.createObjectURL(new Blob([JSON.stringify(m)], { type: 'application/manifest+json' }));
+    link.setAttribute('href', url);
+    if (blobUrl) URL.revokeObjectURL(blobUrl);
+    blobUrl = url;
+  }
+
+  window.__setIdentity = function (name) {
+    if (!T[name]) name = 'night';
+    if (cur === name) return;
+    cur = name;
+    var t = T[name];
+    document.documentElement.setAttribute('data-theme', name);
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', t.color);
+    var fav = document.querySelector('link[rel="icon"]');
+    if (fav) fav.setAttribute('href', t.icon + '-192.png');
+    var apple = document.querySelector('link[rel="apple-touch-icon"]');
+    if (apple) apple.setAttribute('href', t.icon + '-180.png');
+    try { setManifest(t); } catch (e) {}
+  };
+
+  var saved = null;
+  try { saved = JSON.parse(localStorage.getItem('onadream:v1') || 'null'); } catch (e) {}
+  window.__setIdentity(saved && saved.theme);
 })();
 </script>
 </head>
@@ -31,9 +86,10 @@
 <div class="app" id="app">
   <header class="top">
     <div class="brand">
-      <svg class="only-night" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>
-      <svg class="only-jar" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.4 5.6L20 9.3l-4.2 3.9L17 19l-5-3-5 3 1.2-5.8L4 9.3l5.6-.7z"/></svg>
-      <span class="brand-name">On a dream</span>
+      <svg data-themes="night" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>
+      <svg data-themes="jar" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.4 5.6L20 9.3l-4.2 3.9L17 19l-5-3-5 3 1.2-5.8L4 9.3l5.6-.7z"/></svg>
+      <svg data-themes="sun" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="4"/><path d="M12 3v3M4.2 8.2l2.1 2.1M19.8 8.2l-2.1 2.1M2 17h20"/></svg>
+      <span class="brand-name">Копилка</span>
     </div>
     <button id="menuBtn" class="icon-btn" type="button" aria-label="Открыть меню" aria-expanded="false" aria-controls="menu">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
@@ -41,11 +97,11 @@
   </header>
 
   <main id="main">
-    <h1 class="sr-only">Копилка On a dream</h1>
+    <h1 class="sr-only">Копилка</h1>
 
     <section class="card stage" id="stage" aria-label="Копилка">
       <div class="visual" id="visual">
-        <div class="v-ring only-night">
+        <div class="v-ring" data-themes="night">
           <div class="ring-glow" aria-hidden="true"></div>
           <svg id="ringSvg" viewBox="0 0 300 300" role="img" aria-label="Накоплено 0 процентов цели">
             <defs>
@@ -66,7 +122,7 @@
           </div>
         </div>
 
-        <div class="v-jar only-jar">
+        <div class="v-jar" data-themes="jar">
           <svg id="jarSvg" viewBox="0 0 240 320" role="img" aria-label="Банка: накоплено 0">
             <defs>
               <clipPath id="jarClip"><path d="M60 60 h120 v10 q22 6 22 30 v170 q0 30 -30 30 h-104 q-30 0 -30 -30 v-170 q0 -24 22 -30 z"/></clipPath>
@@ -99,15 +155,46 @@
             </g>
           </svg>
         </div>
+
+        <div class="v-sun" data-themes="sun">
+          <svg id="sunSvg" viewBox="0 0 330 210" role="img" aria-label="Накоплено 0 процентов цели">
+            <defs>
+              <radialGradient id="sunG" cx="50%" cy="40%" r="60%"><stop offset="0" stop-color="#ffe29a"/><stop offset="0.6" stop-color="#ffb347"/><stop offset="1" stop-color="#ff6b6b"/></radialGradient>
+              <radialGradient id="sunHalo"><stop offset="0" stop-color="#ff9a5a" stop-opacity="0.7"/><stop offset="1" stop-color="#ff9a5a" stop-opacity="0"/></radialGradient>
+              <linearGradient id="seaG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b1a55"/><stop offset="1" stop-color="#150f30"/></linearGradient>
+              <clipPath id="skyClip"><rect x="-80" y="-80" width="490" height="230"/></clipPath>
+            </defs>
+            <g clip-path="url(#skyClip)">
+              <g id="sunMove" class="sun-move">
+                <circle class="sun-halo" cx="165" cy="112" r="110" fill="url(#sunHalo)"/>
+                <g class="sun-rays" stroke="#ffd27a" stroke-width="3" stroke-linecap="round" opacity="0.7">
+                  <path d="M165 40v-14M165 184v14M93 112h-14M237 112h14M114 61l-10 -10M216 163l10 10M216 61l10 -10M114 163l-10 10"/>
+                </g>
+                <circle cx="165" cy="112" r="52" fill="url(#sunG)"/>
+              </g>
+            </g>
+            <path d="M0 150 H330 V192 q0 18 -18 18 H18 q-18 0 -18 -18 Z" fill="url(#seaG)"/>
+            <path d="M0 150 H330" stroke="#ffb347" stroke-opacity="0.6" stroke-width="1.5"/>
+            <rect class="refl" x="120" y="160" width="90" height="4" rx="2" fill="#ffb347"/>
+            <rect class="refl r2" x="136" y="172" width="58" height="4" rx="2" fill="#ff9a5a"/>
+            <rect class="refl r3" x="148" y="184" width="34" height="4" rx="2" fill="#ff6b6b"/>
+            <path d="M0 150 q40 -26 90 -6 t80 6 z" fill="#0f0a26"/>
+            <path d="M240 150 q30 -30 90 -10 V150 z" fill="#0f0a26"/>
+          </svg>
+          <div class="sun-info">
+            <span class="ring-pct"><span data-bind="pct">0</span><span class="pct-sign">%</span></span>
+            <p class="goal-line">Цель: <b><span data-bind="goal">—</span> <span data-bind="cur"></span></b></p>
+          </div>
+        </div>
         <div class="fx" id="fx" aria-hidden="true"></div>
       </div>
 
       <div class="numbers">
-        <div class="tiles only-night">
+        <div class="tiles" data-themes="night sun">
           <div class="tile t1"><span class="tl">Накоплено</span><span class="tv"><span data-bind="saved">0</span> <span data-bind="cur"></span></span></div>
           <div class="tile t2"><span class="tl">Осталось</span><span class="tv"><span data-bind="left">—</span> <span data-bind="cur"></span></span></div>
         </div>
-        <p class="goal-line only-jar">Цель: <b><span data-bind="goal">—</span> <span data-bind="cur"></span></b></p>
+        <p class="goal-line" data-themes="jar">Цель: <b><span data-bind="goal">—</span> <span data-bind="cur"></span></b></p>
 
         <p class="done-note" id="doneNote" hidden>Цель достигнута — мечта сбылась!</p>
         <p class="goal-hint" id="goalHint" hidden>Цель пока не задана. <button class="link" id="goalSet" type="button">Задать в меню</button></p>
@@ -159,12 +246,24 @@
   </div>
 
   <div class="field">
-    <span class="lbl">Тема</span>
-    <button id="themeBtn" class="theme-btn" type="button">
-      <span class="tb-swatch" aria-hidden="true"></span>
-      <span class="tb-text"><b id="themeName">Ночное небо</b><small id="themeNext"></small></span>
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg>
-    </button>
+    <span class="lbl" id="themeLbl">Тема</span>
+    <div class="themes" role="group" aria-labelledby="themeLbl">
+      <button class="theme-opt" type="button" data-theme-pick="night" aria-pressed="true">
+        <span class="tb-swatch sw-night" aria-hidden="true"></span>
+        <span class="tb-name">Ночное небо</span>
+        <svg class="tick" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+      </button>
+      <button class="theme-opt" type="button" data-theme-pick="jar" aria-pressed="false">
+        <span class="tb-swatch sw-jar" aria-hidden="true"></span>
+        <span class="tb-name">Банка мечты</span>
+        <svg class="tick" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+      </button>
+      <button class="theme-opt" type="button" data-theme-pick="sun" aria-pressed="false">
+        <span class="tb-swatch sw-sun" aria-hidden="true"></span>
+        <span class="tb-name">Рассвет</span>
+        <svg class="tick" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+      </button>
+    </div>
   </div>
 
   <div class="field">

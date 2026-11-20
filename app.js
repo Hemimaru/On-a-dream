@@ -4,10 +4,15 @@
   /* ---------- Константы ---------- */
   const KEY = 'onadream:v1';
   const THEMES = {
-    night: { name: 'Ночное небо', color: '#080a16' },
-    jar: { name: 'Банка мечты', color: '#070812' },
+    night: { name: 'Ночное небо' },
+    jar: { name: 'Банка мечты' },
+    sun: { name: 'Рассвет' },
   };
   const RING_C = 2 * Math.PI * 110;
+  /* солнце: центр на высоте SUN_EMPTY при 0% (за горизонтом) и SUN_FULL при 100% (над ним) */
+  const SUN_EMPTY = 200;
+  const SUN_FULL = 90;
+  const SUN_BASE = 112;
   const JAR_EMPTY = 310;
   const JAR_FULL = 76;
   const MAX_SHOWN = 50;
@@ -89,6 +94,8 @@
   const ringArc = $('#ringArc');
   const ringSvg = $('#ringSvg');
   const jarSvg = $('#jarSvg');
+  const sunSvg = $('#sunSvg');
+  const sunMove = $('#sunMove');
   const liquid = $('#liquid');
   const lblSaved = $('#lblSaved');
   const lblLeft = $('#lblLeft');
@@ -105,7 +112,7 @@
   const menuBtn = $('#menuBtn');
   const goalInput = $('#goalInput');
   const curInput = $('#curInput');
-  const themeBtn = $('#themeBtn');
+  const themeOpts = $$('[data-theme-pick]');
   const resetBtn = $('#resetBtn');
   const toastEl = $('#toast');
   const firstHint = $('#firstHint');
@@ -187,6 +194,7 @@
     ringArc.style.strokeDashoffset = (RING_C * (1 - frac)).toFixed(2);
     ringArc.classList.toggle('empty', frac <= 0);
     liquid.style.transform = `translateY(${(JAR_EMPTY - (JAR_EMPTY - JAR_FULL) * frac).toFixed(1)}px)`;
+    sunMove.style.transform = `translateY(${(SUN_EMPTY - (SUN_EMPTY - SUN_FULL) * frac - SUN_BASE).toFixed(1)}px)`;
     layoutJarLabels(frac);
   }
 
@@ -239,6 +247,7 @@
     const pctInt = Math.floor(frac * 100 + 1e-9);
     const curTxt = state.currency ? ' ' + state.currency : '';
     ringSvg.setAttribute('aria-label', `Накоплено ${pctInt} процентов цели: ${fmt(saved)}${curTxt} из ${goal > 0 ? fmt(goal) : '—'}`);
+    sunSvg.setAttribute('aria-label', `Накоплено ${pctInt} процентов цели: ${fmt(saved)}${curTxt} из ${goal > 0 ? fmt(goal) : '—'}`);
     jarSvg.setAttribute('aria-label', `Банка: накоплено ${fmt(saved)}${curTxt}, осталось ${goal > 0 ? fmt(left) : '—'}${goal > 0 ? curTxt : ''}`);
     animateNumbers({ saved, left, pct: frac * 100 }, opts.instant);
 
@@ -489,9 +498,7 @@
   function syncMenuInputs() {
     if (document.activeElement !== goalInput) goalInput.value = state.goal > 0 ? fmt(state.goal) : '';
     if (document.activeElement !== curInput) curInput.value = state.currency;
-    const other = state.theme === 'night' ? 'jar' : 'night';
-    $('#themeName').textContent = THEMES[state.theme].name;
-    $('#themeNext').textContent = `Нажмите, чтобы сменить на «${THEMES[other].name}»`;
+    themeOpts.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.themePick === state.theme)));
   }
 
   function openMenu(auto) {
@@ -521,19 +528,21 @@
   }
 
   /* ---------- Тема ---------- */
+  /* тема, цвет адресной строки, иконка и манифест приложения — см. скрипт в <head> */
+  function setIdentity(name) {
+    if (typeof window.__setIdentity === 'function') window.__setIdentity(name);
+    else htmlEl.setAttribute('data-theme', name);
+  }
+
   function applyTheme(name) {
     state.theme = name;
-    htmlEl.setAttribute('data-theme', name);
-    const meta = $('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', THEMES[name].color);
+    setIdentity(name);
     syncMenuInputs();
     save();
   }
 
-  function toggleTheme() {
-    const next = state.theme === 'night' ? 'jar' : 'night';
-    themeBtn.classList.add('spin');
-    setTimeout(() => themeBtn.classList.remove('spin'), 500);
+  function pickTheme(next) {
+    if (next === state.theme || !THEMES[next]) return;
     if (document.startViewTransition && !reduceMotion) {
       let applied = false;
       const run = () => {
@@ -568,7 +577,7 @@
     if (e.key === 'Escape' && menu.classList.contains('open')) closeMenu();
   });
 
-  themeBtn.addEventListener('click', toggleTheme);
+  themeOpts.forEach((b) => b.addEventListener('click', () => pickTheme(b.dataset.themePick)));
 
   goalInput.addEventListener('input', () => {
     const raw = goalInput.value.trim();
@@ -640,21 +649,26 @@
   window.addEventListener('storage', (e) => {
     if (e.key !== KEY) return;
     state = load();
-    htmlEl.setAttribute('data-theme', state.theme);
+    setIdentity(state.theme);
     syncMenuInputs();
     renderList();
     render({ instant: true });
   });
 
   /* ---------- Старт ---------- */
-  htmlEl.setAttribute('data-theme', state.theme);
-  const metaTheme = $('meta[name="theme-color"]');
-  if (metaTheme) metaTheme.setAttribute('content', THEMES[state.theme].color);
+  setIdentity(state.theme);
   syncMenuInputs();
   renderList();
   render({ deferVisual: true });
 
   if (state.goal === 0 && state.entries.length === 0) {
     setTimeout(() => openMenu(true), 900);
+  }
+
+  /* работа без интернета и установка на главный экран (нужен https или localhost) */
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
   }
 })();
