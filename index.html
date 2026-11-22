@@ -266,6 +266,37 @@
     </div>
   </div>
 
+  <div class="field" id="calcField">
+    <button id="calcToggle" class="ghost" type="button" aria-expanded="false" aria-controls="calcPanel">Калькулятор</button>
+    <div id="calcPanel" class="calc" hidden>
+      <div class="calc-screen" aria-live="polite">
+        <div class="calc-expr" id="calcExpr"></div>
+        <div class="calc-res" id="calcRes">0</div>
+      </div>
+      <div class="calc-keys">
+        <button type="button" class="ck fn" data-k="C">C</button>
+        <button type="button" class="ck fn" data-k="⌫" aria-label="Стереть">⌫</button>
+        <button type="button" class="ck op" data-k="÷" aria-label="Разделить">÷</button>
+        <button type="button" class="ck op" data-k="×" aria-label="Умножить">×</button>
+        <button type="button" class="ck" data-k="7">7</button>
+        <button type="button" class="ck" data-k="8">8</button>
+        <button type="button" class="ck" data-k="9">9</button>
+        <button type="button" class="ck op" data-k="−" aria-label="Минус">−</button>
+        <button type="button" class="ck" data-k="4">4</button>
+        <button type="button" class="ck" data-k="5">5</button>
+        <button type="button" class="ck" data-k="6">6</button>
+        <button type="button" class="ck op" data-k="+" aria-label="Плюс">+</button>
+        <button type="button" class="ck" data-k="1">1</button>
+        <button type="button" class="ck" data-k="2">2</button>
+        <button type="button" class="ck" data-k="3">3</button>
+        <button type="button" class="ck eq" data-k="=" aria-label="Равно">=</button>
+        <button type="button" class="ck zero" data-k="0">0</button>
+        <button type="button" class="ck" data-k=",">,</button>
+      </div>
+      <button id="calcUse" class="ghost" type="button">Перенести в поле суммы</button>
+    </div>
+  </div>
+
   <div class="field" id="installField">
     <button id="installBtn" class="ghost" type="button">Добавить на главный экран</button>
     <p class="restore-hint" id="installHelp" hidden></p>

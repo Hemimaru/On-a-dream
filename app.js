@@ -572,6 +572,8 @@
     disarmReset();
     hideBackupBox();
     installHelp.hidden = true;
+    calcPanel.hidden = true;
+    calcToggle.setAttribute('aria-expanded', 'false');
   }
 
   /* ---------- Тема ---------- */
@@ -788,6 +790,140 @@
   function updateRestoreHint() {
     restoreHint.hidden = !(standalone && !hasData(state));
   }
+
+  /* ---------- Калькулятор ---------- */
+  const calcToggle = $('#calcToggle');
+  const calcPanel = $('#calcPanel');
+  const calcExpr = $('#calcExpr');
+  const calcRes = $('#calcRes');
+  let cExpr = '';      /* то, что набрано */
+  let cDone = false;   /* после «=» новая цифра начинает с нуля */
+  const OPS = '+−×÷';
+
+  function calcEval(str) {
+    const toks = str.match(/\d+(?:\.\d*)?|\.\d+|[+−×÷]/g) || [];
+    if (!toks.length) return null;
+    const nums = [];
+    const ops = [];
+    const prec = { '+': 1, '−': 1, '×': 2, '÷': 2 };
+    const apply = () => {
+      const b = nums.pop();
+      const a = nums.pop();
+      const o = ops.pop();
+      if (a === undefined || b === undefined) throw new Error('syntax');
+      if (o === '+') nums.push(a + b);
+      else if (o === '−') nums.push(a - b);
+      else if (o === '×') nums.push(a * b);
+      else {
+        if (b === 0) throw new Error('div0');
+        nums.push(a / b);
+      }
+    };
+    let expectNum = true;
+    let neg = false;
+    for (const t of toks) {
+      if (OPS.includes(t)) {
+        if (expectNum) {
+          if (t === '−') { neg = !neg; continue; }
+          throw new Error('syntax');
+        }
+        while (ops.length && prec[ops[ops.length - 1]] >= prec[t]) apply();
+        ops.push(t);
+        expectNum = true;
+      } else {
+        nums.push(neg ? -parseFloat(t) : parseFloat(t));
+        neg = false;
+        expectNum = false;
+      }
+    }
+    if (expectNum) throw new Error('syntax');
+    while (ops.length) apply();
+    const r = nums[0];
+    if (!Number.isFinite(r)) throw new Error('range');
+    return Math.round(r * 1e8) / 1e8;
+  }
+  const calcShow = (n) => String(n).replace('.', ',').replace('-', '−');
+  const calcPretty = (str) => str.replace(/\./g, ',');
+
+  function calcRender(error) {
+    calcExpr.textContent = calcPretty(cExpr);
+    if (error) { calcRes.textContent = error; return; }
+    let live = null;
+    try { live = calcEval(cExpr); } catch (e) { /* выражение ещё не закончено */ }
+    if (live === null) {
+      /* показываем последнее набранное число */
+      const last = (cExpr.match(/[\d.]+$/) || ['0'])[0];
+      calcRes.textContent = calcPretty(last);
+    } else {
+      calcRes.textContent = calcShow(live);
+    }
+  }
+
+  function calcKey(k) {
+    if (k === 'C') { cExpr = ''; cDone = false; return calcRender(); }
+    if (k === '⌫') {
+      cExpr = cDone ? '' : cExpr.slice(0, -1);
+      cDone = false;
+      return calcRender();
+    }
+    if (k === '=') {
+      if (!cExpr) return;
+      try {
+        const r = calcEval(cExpr);
+        if (r === null) return;
+        cExpr = String(r).replace('-', '−');
+        cDone = true;
+        calcRender();
+        calcExpr.textContent = '';
+      } catch (e) {
+        calcRender(e.message === 'div0' ? 'На ноль делить нельзя' : 'Проверьте выражение');
+      }
+      return;
+    }
+    const isOp = OPS.includes(k);
+    if (cDone && !isOp) cExpr = '';
+    cDone = false;
+    if (isOp) {
+      if (!cExpr) { if (k === '−') cExpr = '−'; return calcRender(); }
+      const last = cExpr.slice(-1);
+      if (OPS.includes(last)) {
+        /* заменить знак; после «×» или «÷» допускаем минус у числа */
+        if (k === '−' && '×÷'.includes(last)) cExpr += k;
+        else cExpr = cExpr.slice(0, -1) + k;
+      } else cExpr += k;
+    } else if (k === ',') {
+      const seg = cExpr.split(/[+−×÷]/).pop();
+      if (seg.includes('.')) return;
+      cExpr += seg === '' ? '0.' : '.';
+    } else {
+      const seg = cExpr.split(/[+−×÷]/).pop();
+      if (seg.replace('.', '').length >= 12) return;
+      cExpr += k;
+    }
+    calcRender();
+  }
+
+  calcToggle.addEventListener('click', () => {
+    const open = calcPanel.hidden;
+    calcPanel.hidden = !open;
+    calcToggle.setAttribute('aria-expanded', String(open));
+    if (open) setTimeout(() => calcPanel.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 50);
+  });
+  calcPanel.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-k]');
+    if (b) calcKey(b.dataset.k);
+  });
+  $('#calcUse').addEventListener('click', () => {
+    let r = null;
+    try { r = calcEval(cExpr); } catch (e) { /* нечего переносить */ }
+    if (r === null || r === 0) { toast('Сначала посчитайте сумму'); return; }
+    const v = round2(Math.abs(r));
+    if (!(v > 0)) { toast('Сумма слишком маленькая'); return; }
+    amountEl.value = (r < 0 ? '−' : '') + String(v).replace('.', ',');
+    closeMenu();
+    toast('Сумма в поле — нажмите «Добавить» или «Убавить»');
+  });
+  calcRender();
 
   /* ---------- Добавить на главный экран ---------- */
   const installField = $('#installField');
