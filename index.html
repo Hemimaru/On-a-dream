@@ -241,58 +241,57 @@
 
   <p class="first-hint" id="firstHint" hidden>Начните с цели: впишите сумму, которую хотите накопить.</p>
 
-  <div class="field" id="jarsField">
-    <span class="lbl" id="jarsLbl">Копилки</span>
-    <div class="themes" id="jarList" role="group" aria-labelledby="jarsLbl" hidden></div>
-    <button id="jarAdd" class="ghost" type="button">Новая копилка</button>
-  </div>
-
-  <div class="field">
-    <label for="nameInput">Название</label>
-    <input id="nameInput" type="text" maxlength="24" autocomplete="off" placeholder="Например, Отпуск">
-  </div>
-
-  <div class="field">
-    <label for="goalInput">Сколько хочу накопить</label>
-    <input id="goalInput" type="text" inputmode="decimal" autocomplete="off" placeholder="Например, 5000">
-  </div>
-
-  <div class="field">
-    <label for="deadlineInput">Срок (необязательно)</label>
-    <input id="deadlineInput" type="date" autocomplete="off">
-    <button id="deadlineClear" class="ghost" type="button" hidden>Убрать срок</button>
-  </div>
-
-  <div class="field">
-    <label for="curInput">Валюта</label>
-    <input id="curInput" type="text" maxlength="8" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Br, $, €, ₽ или своя">
-    <small>Впишите любой знак или название.</small>
-  </div>
-
-  <div class="field">
-    <span class="lbl" id="themeLbl">Тема</span>
-    <div class="themes" role="group" aria-labelledby="themeLbl">
-      <button class="theme-opt" type="button" data-theme-pick="night" aria-pressed="true">
-        <span class="tb-swatch sw-night" aria-hidden="true"></span>
-        <span class="tb-name">Ночное небо</span>
-        <svg class="tick" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
-      </button>
-      <button class="theme-opt" type="button" data-theme-pick="jar" aria-pressed="false">
-        <span class="tb-swatch sw-jar" aria-hidden="true"></span>
-        <span class="tb-name">Банка мечты</span>
-        <svg class="tick" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
-      </button>
-      <button class="theme-opt" type="button" data-theme-pick="sun" aria-pressed="false">
-        <span class="tb-swatch sw-sun" aria-hidden="true"></span>
-        <span class="tb-name">Рассвет</span>
-        <svg class="tick" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
-      </button>
+  <section class="msec">
+    <h3 class="mh" id="jarsLbl">Копилки</h3>
+    <div class="chips" data-noswipe>
+      <div id="jarList" role="group" aria-labelledby="jarsLbl"></div>
+      <button id="jarAdd" class="chip add" type="button">+ Новая</button>
     </div>
-  </div>
+  </section>
 
-  <div class="field" id="calcField">
-    <button id="calcToggle" class="ghost" type="button" aria-expanded="false" aria-controls="calcPanel">Калькулятор</button>
-    <div id="calcPanel" class="calc" hidden>
+  <section class="msec">
+    <h3 class="mh">Эта копилка</h3>
+    <div class="fld">
+      <label for="nameInput">Название</label>
+      <input id="nameInput" type="text" maxlength="24" autocomplete="off" placeholder="Например, Отпуск">
+    </div>
+    <div class="pair">
+      <div class="fld">
+        <label for="goalInput">Цель</label>
+        <input id="goalInput" type="text" inputmode="decimal" autocomplete="off" placeholder="5000">
+      </div>
+      <div class="fld">
+        <label for="curInput">Валюта</label>
+        <input id="curInput" type="text" maxlength="8" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Br, $, €">
+      </div>
+    </div>
+    <div class="fld">
+      <label for="deadlineInput">Срок (необязательно)</label>
+      <div class="inline">
+        <input id="deadlineInput" type="date" autocomplete="off">
+        <button id="deadlineClear" class="x-btn" type="button" aria-label="Убрать срок" hidden>✕</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="msec">
+    <h3 class="mh" id="themeLbl">Тема</h3>
+    <div class="theme-row" role="group" aria-labelledby="themeLbl">
+      <button class="theme-opt" type="button" data-theme-pick="night" aria-pressed="true"><span class="tb-swatch sw-night" aria-hidden="true"></span><span class="tb-name">Ночное небо</span></button>
+      <button class="theme-opt" type="button" data-theme-pick="jar" aria-pressed="false"><span class="tb-swatch sw-jar" aria-hidden="true"></span><span class="tb-name">Банка мечты</span></button>
+      <button class="theme-opt" type="button" data-theme-pick="sun" aria-pressed="false"><span class="tb-swatch sw-sun" aria-hidden="true"></span><span class="tb-name">Рассвет</span></button>
+    </div>
+  </section>
+
+  <section class="msec">
+    <h3 class="mh">Инструменты</h3>
+    <div class="tools" role="group">
+      <button class="tool" type="button" data-tool="calc" aria-expanded="false" aria-controls="calcPanel"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7.5h7M9 12h.01M12 12h.01M15 12h.01M9 16h.01M12 16h.01M15 16h.01"/></svg><span>Калькулятор</span></button>
+      <button class="tool" type="button" id="installBtn" data-tool="install" aria-expanded="false" aria-controls="installPanel"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M12 8v6M9 11h6"/></svg><span>На главный экран</span></button>
+      <button class="tool" type="button" data-tool="backup" aria-expanded="false" aria-controls="backupPanel"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8"/></svg><span>Копия данных</span></button>
+    </div>
+
+    <div id="calcPanel" class="panel calc" data-tool-panel="calc" hidden>
       <div class="calc-screen" aria-live="polite">
         <div class="calc-expr" id="calcExpr"></div>
         <div class="calc-res" id="calcRes">0</div>
@@ -319,31 +318,26 @@
       </div>
       <button id="calcUse" class="ghost" type="button">Перенести в поле суммы</button>
     </div>
-  </div>
 
-  <div class="field" id="installField">
-    <button id="installBtn" class="ghost" type="button">Добавить на главный экран</button>
-    <p class="restore-hint" id="installHelp" hidden></p>
-  </div>
-
-  <div class="field" id="backupField">
-    <span class="lbl" id="backupLbl">Копия данных</span>
-    <p class="restore-hint" id="restoreHint" hidden>Если копилка уже была в браузере: откройте её там, меню → «Копия данных» → «Скопировать», потом вернитесь сюда и нажмите «Вставить».</p>
-    <div class="row2">
-      <button id="copyBtn" class="ghost" type="button">Скопировать</button>
-      <button id="pasteBtn" class="ghost" type="button">Вставить</button>
+    <div id="installPanel" class="panel" data-tool-panel="install" hidden>
+      <p class="note" id="installHelp"></p>
     </div>
-    <textarea id="backupBox" rows="4" hidden spellcheck="false" autocomplete="off" autocapitalize="off" aria-labelledby="backupLbl"></textarea>
-    <button id="restoreBtn" class="ghost" type="button" hidden>Восстановить</button>
-  </div>
 
-  <div class="field">
+    <div id="backupPanel" class="panel" data-tool-panel="backup" hidden>
+      <p class="note" id="restoreHint" hidden>Если копилка уже была в браузере: откройте её там, меню → «Копия данных» → «Скопировать», потом вернитесь сюда и нажмите «Вставить».</p>
+      <div class="row2">
+        <button id="copyBtn" class="ghost" type="button">Скопировать</button>
+        <button id="pasteBtn" class="ghost" type="button">Вставить</button>
+      </div>
+      <textarea id="backupBox" rows="4" hidden spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Код копии данных" data-noswipe></textarea>
+      <button id="restoreBtn" class="ghost" type="button" hidden>Восстановить</button>
+    </div>
+  </section>
+
+  <section class="msec danger-zone">
     <button id="resetBtn" class="danger" type="button">Обнулить накопления</button>
-  </div>
-
-  <div class="field">
     <button id="jarDel" class="danger" type="button" hidden>Удалить копилку</button>
-  </div>
+  </section>
 </aside>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>

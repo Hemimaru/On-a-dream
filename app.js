@@ -425,8 +425,6 @@
   }
 
   /* ---------- Несколько копилок ---------- */
-  const TICK = '<svg class="tick" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
-
   function renderTabs() {
     syncStore();
     tabsEl.textContent = '';
@@ -447,23 +445,21 @@
   function renderJarList() {
     syncStore();
     jarList.textContent = '';
-    jarList.hidden = store.jars.length < 2;
     jarDel.hidden = store.jars.length < 2;
     store.jars.forEach((j) => {
       const saved = round2(j.entries.reduce((sum, e) => sum + e.amount, 0));
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = 'theme-opt jar-opt';
+      b.className = 'chip';
       b.dataset.jar = j.id;
       b.setAttribute('aria-pressed', String(j.id === state.id));
       const nm = document.createElement('span');
-      nm.className = 'tb-name';
+      nm.className = 'chip-name';
       nm.textContent = j.name;
       const info = document.createElement('span');
-      info.className = 'jar-info';
-      info.textContent = j.goal > 0 ? Math.min(100, Math.floor((saved / j.goal) * 100 + 1e-9)) + '%' : '—';
+      info.className = 'chip-pct';
+      info.textContent = j.goal > 0 ? Math.min(100, Math.floor((saved / j.goal) * 100 + 1e-9)) + '%' : '';
       b.append(nm, info);
-      b.insertAdjacentHTML('beforeend', TICK);
       jarList.append(b);
     });
   }
@@ -732,6 +728,7 @@
   function openMenu(auto) {
     syncMenuInputs();
     updateRestoreHint();
+    if (!restoreHint.hidden) setTool('backup');
     firstHint.hidden = !(auto || state.goal === 0);
     menu.removeAttribute('inert');
     appEl.setAttribute('inert', '');
@@ -756,9 +753,7 @@
     disarmReset();
     disarmJarDel();
     hideBackupBox();
-    installHelp.hidden = true;
-    calcPanel.hidden = true;
-    calcToggle.setAttribute('aria-expanded', 'false');
+    setTool(null);
   }
 
   /* ---------- Тема ---------- */
@@ -1068,7 +1063,6 @@
   }
 
   /* ---------- Калькулятор ---------- */
-  const calcToggle = $('#calcToggle');
   const calcPanel = $('#calcPanel');
   const calcExpr = $('#calcExpr');
   const calcRes = $('#calcRes');
@@ -1179,12 +1173,6 @@
     calcRender();
   }
 
-  calcToggle.addEventListener('click', () => {
-    const open = calcPanel.hidden;
-    calcPanel.hidden = !open;
-    calcToggle.setAttribute('aria-expanded', String(open));
-    if (open) setTimeout(() => calcPanel.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 50);
-  });
   calcPanel.addEventListener('click', (e) => {
     const b = e.target.closest('[data-k]');
     if (b) calcKey(b.dataset.k);
@@ -1202,14 +1190,16 @@
   calcRender();
 
   /* ---------- Добавить на главный экран ---------- */
-  const installField = $('#installField');
   const installBtn = $('#installBtn');
   const installHelp = $('#installHelp');
   let installEvt = null;
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-  if (standalone) installField.hidden = true;
+  installBtn.hidden = standalone;
+  installHelp.textContent = isIOS
+    ? 'В Safari: «Поделиться» (квадрат со стрелкой внизу экрана) → «На экран “Домой”». Иконка будет в цвете выбранной сейчас темы.'
+    : 'В меню браузера (три точки) выберите «Установить приложение» или «Добавить на главный экран».';
 
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
@@ -1217,12 +1207,26 @@
   });
   window.addEventListener('appinstalled', () => {
     installEvt = null;
-    installField.hidden = true;
+    installBtn.hidden = true;
     toast('Копилка добавлена на главный экран');
   });
 
-  installBtn.addEventListener('click', async () => {
-    if (installEvt) {
+  /* ---------- Инструменты в меню: открыт один за раз ---------- */
+  const toolBtns = $$('[data-tool]');
+  const toolPanels = $$('[data-tool-panel]');
+  let openToolName = null;
+  function setTool(name) {
+    openToolName = name;
+    toolBtns.forEach((b) => b.setAttribute('aria-expanded', String(b.dataset.tool === name)));
+    toolPanels.forEach((p) => { p.hidden = p.dataset.toolPanel !== name; });
+    if (name) {
+      const p = toolPanels.find((x) => x.dataset.toolPanel === name);
+      setTimeout(() => p && p.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 60);
+    }
+  }
+  toolBtns.forEach((b) => b.addEventListener('click', async () => {
+    const name = b.dataset.tool;
+    if (name === 'install' && installEvt) {
       const evt = installEvt;
       installEvt = null;
       try {
@@ -1231,11 +1235,64 @@
       } catch (e) { /* закрыли окно */ }
       return;
     }
-    installHelp.textContent = isIOS
-      ? 'В Safari: нажмите «Поделиться» (квадрат со стрелкой внизу экрана) → «На экран “Домой”». Иконка будет в цвете выбранной сейчас темы.'
-      : 'В меню браузера (три точки) выберите «Установить приложение» или «Добавить на главный экран».';
-    installHelp.hidden = !installHelp.hidden;
-  });
+    setTool(openToolName === name ? null : name);
+  }));
+
+  /* ---------- Закрыть меню свайпом вправо ---------- */
+  (() => {
+    let sx = 0;
+    let sy = 0;
+    let dx = 0;
+    let t0 = 0;
+    let tracking = false;
+    let drag = false;
+    menu.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1 || e.target.closest('[data-noswipe]')) {
+        tracking = false;
+        return;
+      }
+      sx = e.touches[0].clientX;
+      sy = e.touches[0].clientY;
+      dx = 0;
+      drag = false;
+      tracking = true;
+      t0 = Date.now();
+    }, { passive: true });
+    menu.addEventListener('touchmove', (e) => {
+      if (!tracking) return;
+      const ddx = e.touches[0].clientX - sx;
+      const ddy = e.touches[0].clientY - sy;
+      if (!drag) {
+        if (Math.abs(ddy) > 10 && Math.abs(ddy) > Math.abs(ddx)) {
+          tracking = false;
+          return;
+        }
+        if (!(ddx > 12 && ddx > Math.abs(ddy) * 1.2)) return;
+        drag = true;
+        menu.style.transition = 'none';
+        backdrop.style.transition = 'none';
+      }
+      dx = Math.max(0, ddx);
+      menu.style.transform = `translateX(${dx}px)`;
+      backdrop.style.opacity = String(Math.max(0, 1 - dx / menu.offsetWidth));
+      e.preventDefault();
+    }, { passive: false });
+    const end = () => {
+      const wasDrag = tracking && drag;
+      tracking = false;
+      drag = false;
+      if (!wasDrag) return;
+      const fast = dx / Math.max(1, Date.now() - t0) > 0.5 && dx > 40;
+      menu.style.transition = '';
+      backdrop.style.transition = '';
+      void menu.offsetWidth;
+      if (dx > menu.offsetWidth * 0.3 || fast) closeMenu();
+      menu.style.transform = '';
+      backdrop.style.opacity = '';
+    };
+    menu.addEventListener('touchend', end);
+    menu.addEventListener('touchcancel', end);
+  })();
 
   /* синхронизация между вкладками */
   window.addEventListener('storage', (e) => {
