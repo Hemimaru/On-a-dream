@@ -1,6 +1,6 @@
 /* Service worker: копилка открывается и без интернета.
-   Сначала берём свежие файлы из сети, при её отсутствии — из кэша. */
-const CACHE = 'kopilka-v6';
+   Сначала берём свежие файлы из сети (с проверкой, что они не устарели), при её отсутствии — из кэша. */
+const CACHE = 'kopilka-v7';
 const SHELL = [
   './',
   'index.html',
@@ -34,7 +34,7 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   event.respondWith(
-    fetch(req)
+    fetch(req, { cache: 'no-cache' })
       .then((res) => {
         if (res && res.ok) {
           const copy = res.clone();

@@ -1329,7 +1329,22 @@
   /* работа без интернета и установка на главный экран (нужен https или localhost) */
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
+      navigator.serviceWorker.register('sw.js').then((reg) => {
+        /* ищем обновление при каждом возвращении в приложение */
+        document.addEventListener('visibilitychange', () => {
+          if (!document.hidden) reg.update().catch(() => {});
+        });
+        reg.update().catch(() => {});
+      }).catch(() => {});
+      /* вышла новая версия — перезагружаем страницу один раз (если не набирается сумма) */
+      if (navigator.serviceWorker.controller) {
+        let reloaded = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (reloaded || amountEl.value) return;
+          reloaded = true;
+          location.reload();
+        });
+      }
     });
   }
 })();
