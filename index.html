@@ -96,6 +96,8 @@
     </button>
   </header>
 
+  <nav class="jar-tabs" id="jarTabs" aria-label="Мои копилки" hidden></nav>
+
   <main id="main">
     <h1 class="sr-only">Копилка</h1>
 
@@ -212,6 +214,11 @@
         </div>
         <p id="msg" class="msg" role="status"></p>
       </div>
+
+      <div class="plan" id="plan" hidden>
+        <b id="planTitle"></b>
+        <span id="planSub"></span>
+      </div>
     </section>
 
     <section class="card history" aria-label="История">
@@ -234,9 +241,26 @@
 
   <p class="first-hint" id="firstHint" hidden>Начните с цели: впишите сумму, которую хотите накопить.</p>
 
+  <div class="field" id="jarsField">
+    <span class="lbl" id="jarsLbl">Копилки</span>
+    <div class="themes" id="jarList" role="group" aria-labelledby="jarsLbl" hidden></div>
+    <button id="jarAdd" class="ghost" type="button">Новая копилка</button>
+  </div>
+
+  <div class="field">
+    <label for="nameInput">Название</label>
+    <input id="nameInput" type="text" maxlength="24" autocomplete="off" placeholder="Например, Отпуск">
+  </div>
+
   <div class="field">
     <label for="goalInput">Сколько хочу накопить</label>
     <input id="goalInput" type="text" inputmode="decimal" autocomplete="off" placeholder="Например, 5000">
+  </div>
+
+  <div class="field">
+    <label for="deadlineInput">Срок (необязательно)</label>
+    <input id="deadlineInput" type="date" autocomplete="off">
+    <button id="deadlineClear" class="ghost" type="button" hidden>Убрать срок</button>
   </div>
 
   <div class="field">
@@ -315,6 +339,10 @@
 
   <div class="field">
     <button id="resetBtn" class="danger" type="button">Обнулить накопления</button>
+  </div>
+
+  <div class="field">
+    <button id="jarDel" class="danger" type="button" hidden>Удалить копилку</button>
   </div>
 </aside>
 

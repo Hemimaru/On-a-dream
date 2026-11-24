@@ -52,20 +52,49 @@
   }
 
   /* ---------- Состояние ---------- */
-  function normalize(raw) {
-    const d = { goal: 0, currency: 'Br', theme: 'night', entries: [] };
-    if (!raw || typeof raw !== 'object') return d;
+  const DEFAULT_NAME = 'Копилка';
+  const MAX_JARS = 12;
+  const validDate = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v + 'T00:00:00'));
+
+  function normJar(raw, fallbackId) {
+    const j = { id: fallbackId, name: DEFAULT_NAME, goal: 0, currency: 'Br', deadline: '', entries: [] };
+    if (!raw || typeof raw !== 'object') return j;
+    if (typeof raw.id === 'string' && raw.id) j.id = raw.id.slice(0, 40);
+    if (typeof raw.name === 'string' && raw.name.trim()) j.name = raw.name.trim().slice(0, 24);
     const goal = Number(raw.goal);
-    if (Number.isFinite(goal) && goal > 0) d.goal = goal;
-    if (typeof raw.currency === 'string') d.currency = raw.currency.slice(0, 8);
-    if (typeof raw.theme === 'string' && Object.prototype.hasOwnProperty.call(THEMES, raw.theme)) d.theme = raw.theme;
+    if (Number.isFinite(goal) && goal > 0) j.goal = goal;
+    if (typeof raw.currency === 'string') j.currency = raw.currency.slice(0, 8);
+    if (validDate(raw.deadline)) j.deadline = raw.deadline;
     if (Array.isArray(raw.entries)) {
-      d.entries = raw.entries
+      j.entries = raw.entries
         .filter((e) => e && Number.isFinite(e.amount) && e.amount !== 0 && Number.isFinite(e.ts))
         .slice(0, MAX_ENTRIES)
         .map((e) => ({ id: String(e.id || uid()), amount: round2(e.amount), ts: e.ts }));
     }
-    return d;
+    return j;
+  }
+
+  /* хранилище: { theme, activeId, jars: [...] }; старый формат (одна копилка) превращается в первую копилку */
+  function normalize(raw) {
+    const st = { theme: 'night', activeId: '', jars: [] };
+    if (raw && typeof raw === 'object') {
+      if (typeof raw.theme === 'string' && Object.prototype.hasOwnProperty.call(THEMES, raw.theme)) st.theme = raw.theme;
+      if (Array.isArray(raw.jars)) {
+        const seen = new Set();
+        raw.jars.slice(0, MAX_JARS).forEach((r) => {
+          const j = normJar(r, uid());
+          if (seen.has(j.id)) j.id = uid();
+          seen.add(j.id);
+          st.jars.push(j);
+        });
+      } else {
+        st.jars.push(normJar(raw, 'main'));
+      }
+      if (typeof raw.activeId === 'string') st.activeId = raw.activeId;
+    }
+    if (!st.jars.length) st.jars.push(normJar(null, 'main'));
+    if (!st.jars.some((j) => j.id === st.activeId)) st.activeId = st.jars[0].id;
+    return st;
   }
 
   let hadLocal = false;
@@ -80,8 +109,34 @@
     }
   }
 
-  let state = load();
-  const hasData = (st) => st.goal > 0 || st.entries.length > 0;
+  const hasData = (x) => (x.jars || [x]).some((j) => j.goal > 0 || j.entries.length > 0);
+  const clone = (x) => JSON.parse(JSON.stringify(x));
+
+  let store = load();
+  /* state — рабочая копия активной копилки (+ тема); store.jars хранит все копилки */
+  let state = {};
+  function activate(id) {
+    const j = store.jars.find((x) => x.id === id) || store.jars[0];
+    store.activeId = j.id;
+    state = { id: j.id, name: j.name, goal: j.goal, currency: j.currency, deadline: j.deadline, entries: j.entries, theme: store.theme };
+  }
+  function syncStore() {
+    const j = store.jars.find((x) => x.id === state.id);
+    if (j) {
+      j.name = state.name;
+      j.goal = state.goal;
+      j.currency = state.currency;
+      j.deadline = state.deadline;
+      j.entries = state.entries;
+    }
+    store.theme = state.theme;
+    store.activeId = state.id;
+  }
+  const anyData = () => {
+    syncStore();
+    return hasData(store);
+  };
+  activate(store.activeId);
 
   /* Вторая копия в IndexedDB: iOS иногда очищает localStorage, а IndexedDB переживает это чаще */
   const idb = {
@@ -114,12 +169,13 @@
   };
 
   function save() {
+    syncStore();
     try {
-      localStorage.setItem(KEY, JSON.stringify(state));
+      localStorage.setItem(KEY, JSON.stringify(store));
     } catch (e) {
       /* хранилище недоступно (приватный режим и т.п.) */
     }
-    idb.put(JSON.parse(JSON.stringify(state))).catch(() => {});
+    idb.put(clone(store)).catch(() => {});
   }
 
   /* просим браузер не стирать данные сайта */
@@ -160,6 +216,13 @@
   const resetBtn = $('#resetBtn');
   const toastEl = $('#toast');
   const firstHint = $('#firstHint');
+  const tabsEl = $('#jarTabs');
+  const jarList = $('#jarList');
+  const nameInput = $('#nameInput');
+  const deadlineInput = $('#deadlineInput');
+  const deadlineClear = $('#deadlineClear');
+  const jarDel = $('#jarDel');
+  const planEl = $('#plan');
 
   const binds = {};
   $$('[data-bind]').forEach((el) => {
@@ -305,6 +368,122 @@
     stage.classList.toggle('done', done);
     doneNote.hidden = !done;
     goalHint.hidden = goal > 0;
+    renderPlan();
+  }
+
+  /* ---------- Срок цели ---------- */
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const ymd = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  function daysWord(n) {
+    const m10 = n % 10;
+    const m100 = n % 100;
+    if (m10 === 1 && m100 !== 11) return 'день';
+    if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return 'дня';
+    return 'дней';
+  }
+  const roundUp = (x) => fmt(x >= 10 ? Math.ceil(x) : Math.ceil(x * 100) / 100);
+
+  function renderPlan() {
+    const goal = state.goal;
+    if (!state.deadline || !(goal > 0)) {
+      planEl.hidden = true;
+      return;
+    }
+    const left = Math.max(0, round2(goal - total()));
+    const [y, m, d] = state.deadline.split('-').map(Number);
+    const dl = new Date(y, m - 1, d);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const days = Math.round((dl - today) / 86400000);
+    const dateTxt = dl.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: dl.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
+    const cur = state.currency ? ' ' + state.currency : '';
+    let title;
+    let sub = '';
+    let kind = '';
+    if (left <= 0) {
+      title = `Цель достигнута к сроку: ${dateTxt}`;
+      kind = 'ok';
+    } else if (days < 0) {
+      title = `Срок (${dateTxt}) прошёл`;
+      sub = `Не хватает ${fmt(left)}${cur}`;
+      kind = 'late';
+    } else if (days === 0) {
+      title = 'Срок — сегодня';
+      sub = `Осталось собрать ${fmt(left)}${cur}`;
+    } else {
+      title = `До ${dateTxt} · ${days} ${daysWord(days)}`;
+      const parts = [`≈ ${roundUp(left / days)}${cur} в день`];
+      if (days >= 7) parts.push(`${roundUp((left / days) * 7)}${cur} в неделю`);
+      if (days >= 60) parts.push(`${roundUp((left / days) * 30.4)}${cur} в месяц`);
+      sub = 'Откладывайте ' + parts.join(' · ');
+    }
+    $('#planTitle').textContent = title;
+    $('#planSub').textContent = sub;
+    $('#planSub').hidden = !sub;
+    planEl.className = 'plan' + (kind ? ' ' + kind : '');
+    planEl.hidden = false;
+  }
+
+  /* ---------- Несколько копилок ---------- */
+  const TICK = '<svg class="tick" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+
+  function renderTabs() {
+    syncStore();
+    tabsEl.textContent = '';
+    tabsEl.hidden = store.jars.length < 2;
+    store.jars.forEach((j) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'jar-tab';
+      b.dataset.jar = j.id;
+      b.textContent = j.name;
+      if (j.id === state.id) b.setAttribute('aria-current', 'true');
+      tabsEl.append(b);
+    });
+    const act = tabsEl.querySelector('[aria-current]');
+    if (act) tabsEl.scrollLeft = act.offsetLeft - (tabsEl.clientWidth - act.offsetWidth) / 2;
+  }
+
+  function renderJarList() {
+    syncStore();
+    jarList.textContent = '';
+    jarList.hidden = store.jars.length < 2;
+    jarDel.hidden = store.jars.length < 2;
+    store.jars.forEach((j) => {
+      const saved = round2(j.entries.reduce((sum, e) => sum + e.amount, 0));
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'theme-opt jar-opt';
+      b.dataset.jar = j.id;
+      b.setAttribute('aria-pressed', String(j.id === state.id));
+      const nm = document.createElement('span');
+      nm.className = 'tb-name';
+      nm.textContent = j.name;
+      const info = document.createElement('span');
+      info.className = 'jar-info';
+      info.textContent = j.goal > 0 ? Math.min(100, Math.floor((saved / j.goal) * 100 + 1e-9)) + '%' : '—';
+      b.append(nm, info);
+      b.insertAdjacentHTML('beforeend', TICK);
+      jarList.append(b);
+    });
+  }
+
+  function renderAll(opts) {
+    syncMenuInputs();
+    renderTabs();
+    renderList();
+    render(opts);
+  }
+
+  function switchJar(id) {
+    if (id === state.id) return false;
+    syncStore();
+    activate(id);
+    save();
+    amountEl.value = '';
+    showMsg('');
+    renderAll();
+    return true;
   }
 
   /* ---------- История ---------- */
@@ -542,7 +721,12 @@
   function syncMenuInputs() {
     if (document.activeElement !== goalInput) goalInput.value = state.goal > 0 ? fmt(state.goal) : '';
     if (document.activeElement !== curInput) curInput.value = state.currency;
+    if (document.activeElement !== nameInput) nameInput.value = state.name;
+    deadlineInput.value = state.deadline;
+    deadlineInput.min = ymd(new Date());
+    deadlineClear.hidden = !state.deadline;
     themeOpts.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.themePick === state.theme)));
+    renderJarList();
   }
 
   function openMenu(auto) {
@@ -570,6 +754,7 @@
     menuBtn.setAttribute('aria-expanded', 'false');
     menuBtn.focus({ preventScroll: true });
     disarmReset();
+    disarmJarDel();
     hideBackupBox();
     installHelp.hidden = true;
     calcPanel.hidden = true;
@@ -617,6 +802,15 @@
     resetBtn.classList.remove('armed');
   }
 
+  let jarDelArmed = false;
+  let jarDelTimer = 0;
+  function disarmJarDel() {
+    jarDelArmed = false;
+    clearTimeout(jarDelTimer);
+    jarDel.textContent = 'Удалить копилку';
+    jarDel.classList.remove('armed');
+  }
+
   /* ---------- События ---------- */
   menuBtn.addEventListener('click', () => openMenu(false));
   $('#menuClose').addEventListener('click', closeMenu);
@@ -627,6 +821,88 @@
   });
 
   themeOpts.forEach((b) => b.addEventListener('click', () => pickTheme(b.dataset.themePick)));
+
+  tabsEl.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-jar]');
+    if (b) switchJar(b.dataset.jar);
+  });
+  jarList.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-jar]');
+    if (!b) return;
+    if (b.dataset.jar === state.id) return;
+    switchJar(b.dataset.jar);
+    closeMenu();
+  });
+
+  $('#jarAdd').addEventListener('click', () => {
+    if (store.jars.length >= MAX_JARS) {
+      toast(`Максимум ${MAX_JARS} копилок`);
+      return;
+    }
+    syncStore();
+    let n = store.jars.length + 1;
+    while (store.jars.some((j) => j.name === `${DEFAULT_NAME} ${n}`)) n++;
+    const j = normJar({ name: `${DEFAULT_NAME} ${n}`, currency: state.currency }, uid());
+    store.jars.push(j);
+    activate(j.id);
+    save();
+    amountEl.value = '';
+    showMsg('');
+    renderAll();
+    firstHint.hidden = false;
+    goalInput.focus({ preventScroll: true });
+  });
+
+  jarDel.addEventListener('click', () => {
+    if (store.jars.length < 2) return;
+    if (!jarDelArmed) {
+      jarDelArmed = true;
+      jarDel.textContent = `Точно удалить «${state.name}»? Ещё раз`;
+      jarDel.classList.add('armed');
+      jarDelTimer = setTimeout(disarmJarDel, 4000);
+      return;
+    }
+    disarmJarDel();
+    syncStore();
+    const idx = store.jars.findIndex((j) => j.id === state.id);
+    store.jars.splice(idx, 1);
+    activate(store.jars[Math.max(0, idx - 1)].id);
+    save();
+    closeMenu();
+    renderAll();
+    toast('Копилка удалена');
+  });
+
+  nameInput.addEventListener('input', () => {
+    state.name = nameInput.value.slice(0, 24);
+    save();
+    renderTabs();
+    renderJarList();
+  });
+  nameInput.addEventListener('blur', () => {
+    state.name = nameInput.value.trim() || DEFAULT_NAME;
+    nameInput.value = state.name;
+    save();
+    renderTabs();
+    renderJarList();
+  });
+
+  deadlineInput.addEventListener('change', () => {
+    state.deadline = validDate(deadlineInput.value) ? deadlineInput.value : '';
+    save();
+    deadlineClear.hidden = !state.deadline;
+    renderPlan();
+  });
+  deadlineClear.addEventListener('click', () => {
+    state.deadline = '';
+    deadlineInput.value = '';
+    save();
+    deadlineClear.hidden = true;
+    renderPlan();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) renderPlan();
+  });
 
   goalInput.addEventListener('input', () => {
     const raw = goalInput.value.trim();
@@ -702,7 +978,8 @@
     (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
 
   function encodeBackup() {
-    const bytes = new TextEncoder().encode(JSON.stringify(state));
+    syncStore();
+    const bytes = new TextEncoder().encode(JSON.stringify(store));
     let bin = '';
     bytes.forEach((b) => { bin += String.fromCharCode(b); });
     return 'KOP1:' + btoa(bin);
@@ -734,12 +1011,11 @@
   }
 
   function applyRestored(st) {
-    state = st;
+    store = st;
+    activate(store.activeId);
     save();
     setIdentity(state.theme);
-    syncMenuInputs();
-    renderList();
-    render({ instant: true });
+    renderAll({ instant: true });
   }
 
   $('#copyBtn').addEventListener('click', async () => {
@@ -774,7 +1050,7 @@
       toast('Код не распознан');
       return;
     }
-    if (hasData(state) && !restoreArmed) {
+    if (anyData() && !restoreArmed) {
       restoreArmed = true;
       restoreBtn.textContent = 'Заменить данные? Нажмите ещё раз';
       restoreBtn.classList.add('armed');
@@ -788,7 +1064,7 @@
 
   /* подсказка в установленном приложении, пока данных нет */
   function updateRestoreHint() {
-    restoreHint.hidden = !(standalone && !hasData(state));
+    restoreHint.hidden = !(standalone && !anyData());
   }
 
   /* ---------- Калькулятор ---------- */
@@ -964,32 +1240,33 @@
   /* синхронизация между вкладками */
   window.addEventListener('storage', (e) => {
     if (e.key !== KEY) return;
-    state = load();
+    const keep = state.id;
+    store = load();
+    activate(store.jars.some((j) => j.id === keep) ? keep : store.activeId);
     setIdentity(state.theme);
-    syncMenuInputs();
-    renderList();
-    render({ instant: true });
+    renderAll({ instant: true });
   });
 
   /* ---------- Старт ---------- */
   setIdentity(state.theme);
   syncMenuInputs();
+  renderTabs();
   renderList();
   render({ deferVisual: true });
 
-  if (!hasData(state)) {
-    setTimeout(() => { if (!hasData(state)) openMenu(true); }, 900);
+  if (!anyData()) {
+    setTimeout(() => { if (!anyData()) openMenu(true); }, 900);
   }
 
   /* localStorage пуст (например, iOS его очистил), а копия в IndexedDB осталась — возвращаем данные */
   if (!hadLocal) {
     idb.get().then((v) => {
-      if (!v || hasData(state)) return;
+      if (!v || anyData()) return;
       const st = normalize(v);
       if (hasData(st)) applyRestored(st);
     }).catch(() => {});
-  } else if (hasData(state)) {
-    idb.put(JSON.parse(JSON.stringify(state))).catch(() => {});
+  } else if (anyData()) {
+    idb.put(clone(store)).catch(() => {});
   }
 
   /* работа без интернета и установка на главный экран (нужен https или localhost) */
