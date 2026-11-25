@@ -1294,6 +1294,66 @@
     menu.addEventListener('touchcancel', end);
   })();
 
+  /* ---------- Открыть меню свайпом влево от правого края ---------- */
+  (() => {
+    const EDGE = 28; /* ширина зоны у правого края экрана, px */
+    let sx = 0;
+    let sy = 0;
+    let dx = 0;
+    let t0 = 0;
+    let w = 0;
+    let tracking = false;
+    let drag = false;
+    document.addEventListener('touchstart', (e) => {
+      tracking = false;
+      drag = false;
+      if (e.touches.length !== 1 || menu.classList.contains('open')) return;
+      if (e.touches[0].clientX < window.innerWidth - EDGE) return;
+      sx = e.touches[0].clientX;
+      sy = e.touches[0].clientY;
+      dx = 0;
+      tracking = true;
+      t0 = Date.now();
+    }, { passive: true });
+    document.addEventListener('touchmove', (e) => {
+      if (!tracking) return;
+      const ddx = sx - e.touches[0].clientX;
+      const ddy = e.touches[0].clientY - sy;
+      if (!drag) {
+        if (Math.abs(ddy) > 10 && Math.abs(ddy) > Math.abs(ddx)) {
+          tracking = false;
+          return;
+        }
+        if (!(ddx > 12 && ddx > Math.abs(ddy) * 1.2)) return;
+        drag = true;
+        w = menu.offsetWidth;
+        menu.style.transition = 'none';
+        backdrop.style.transition = 'none';
+        menu.style.visibility = 'visible';
+      }
+      dx = Math.min(w, Math.max(0, ddx));
+      menu.style.transform = `translateX(${w - dx}px)`;
+      backdrop.style.opacity = String(dx / w);
+      e.preventDefault();
+    }, { passive: false });
+    const end = () => {
+      const wasDrag = tracking && drag;
+      tracking = false;
+      drag = false;
+      if (!wasDrag) return;
+      const fast = dx / Math.max(1, Date.now() - t0) > 0.5 && dx > 40;
+      menu.style.transition = '';
+      backdrop.style.transition = '';
+      void menu.offsetWidth;
+      if (dx > w * 0.3 || fast) openMenu(false);
+      menu.style.transform = '';
+      menu.style.visibility = '';
+      backdrop.style.opacity = '';
+    };
+    document.addEventListener('touchend', end);
+    document.addEventListener('touchcancel', end);
+  })();
+
   /* синхронизация между вкладками */
   window.addEventListener('storage', (e) => {
     if (e.key !== KEY) return;

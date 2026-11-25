@@ -1,6 +1,6 @@
 /* Service worker: копилка открывается и без интернета.
    Сначала берём свежие файлы из сети (с проверкой, что они не устарели), при её отсутствии — из кэша. */
-const CACHE = 'kopilka-v7';
+const CACHE = 'kopilka-v8';
 const SHELL = [
   './',
   'index.html',
